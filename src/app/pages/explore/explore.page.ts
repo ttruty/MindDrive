@@ -13,12 +13,14 @@ import {
   RefresherCustomEvent,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { cloudOfflineOutline, compassOutline, folderOpenOutline, leafOutline } from 'ionicons/icons';
+import { compassOutline, folderOpenOutline, leafOutline } from 'ionicons/icons';
 import { GoogleAuthService } from '../../core/google-auth.service';
 import { LibraryService } from '../../core/library.service';
 import { DriveNode } from '../../core/models';
 import { PlayerLauncher } from '../../player/player-launcher.service';
 import { CategoryCardComponent } from '../../shared/category-card/category-card.component';
+import { LibraryBannerComponent } from '../../shared/library-banner/library-banner.component';
+import { LoadErrorComponent } from '../../shared/load-error/load-error.component';
 import { SessionListComponent } from '../../shared/session-list/session-list.component';
 
 @Component({
@@ -38,6 +40,8 @@ import { SessionListComponent } from '../../shared/session-list/session-list.com
     IonRefresherContent,
     CategoryCardComponent,
     SessionListComponent,
+    LibraryBannerComponent,
+    LoadErrorComponent,
   ],
 })
 export class ExplorePage {
@@ -68,7 +72,7 @@ export class ExplorePage {
   });
 
   constructor() {
-    addIcons({ cloudOfflineOutline, compassOutline, folderOpenOutline, leafOutline });
+    addIcons({ compassOutline, folderOpenOutline, leafOutline });
   }
 
   async refresh(event: RefresherCustomEvent): Promise<void> {

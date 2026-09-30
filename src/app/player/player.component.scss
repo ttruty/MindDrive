@@ -228,3 +228,62 @@
     cursor: pointer;
   }
 }
+
+// Landscape phones: artwork left, title + controls right, so everything fits without scrolling.
+@media (orientation: landscape) and (max-height: 540px) {
+  .player__inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    grid-template-rows: auto 1fr auto;
+    column-gap: 32px;
+    max-width: 900px;
+    padding-top: calc(env(safe-area-inset-top) + 4px);
+    padding-bottom: calc(env(safe-area-inset-bottom) + 12px);
+  }
+
+  .player__top {
+    grid-column: 1 / -1;
+  }
+
+  .player__stage {
+    grid-column: 1;
+    grid-row: 2 / 4;
+    min-height: 0;
+    padding: 0;
+  }
+
+  .player__orb {
+    width: min(38vh, 200px);
+    font-size: min(14vh, 64px);
+  }
+
+  .player__video {
+    max-height: 70vh;
+  }
+
+  .player__meta {
+    grid-column: 2;
+    align-self: end;
+    text-align: start;
+
+    h1 {
+      font-size: 1.3rem;
+    }
+  }
+
+  .player__controls,
+  .player__status {
+    grid-column: 2;
+    margin-top: 12px;
+  }
+
+  .player__transport {
+    margin-top: 8px;
+  }
+
+  .player__play {
+    width: 64px;
+    height: 64px;
+    font-size: 28px;
+  }
+}

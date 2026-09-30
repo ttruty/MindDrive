@@ -20,7 +20,6 @@ import {
   checkmarkCircle,
   chevronForward,
   cloudDownloadOutline,
-  cloudOfflineOutline,
   searchOutline,
 } from 'ionicons/icons';
 import { DownloadsService } from '../../core/downloads.service';
@@ -35,6 +34,8 @@ import {
   formatBytes,
   sessionCountLabel,
 } from '../../shared/display';
+import { LibraryBannerComponent } from '../../shared/library-banner/library-banner.component';
+import { LoadErrorComponent } from '../../shared/load-error/load-error.component';
 import { SessionListComponent } from '../../shared/session-list/session-list.component';
 
 interface Crumb {
@@ -61,6 +62,8 @@ interface Crumb {
     IonRefresherContent,
     CategoryCardComponent,
     SessionListComponent,
+    LibraryBannerComponent,
+    LoadErrorComponent,
   ],
 })
 export class CategoryPage {
@@ -118,7 +121,7 @@ export class CategoryPage {
   });
 
   constructor() {
-    addIcons({ checkmarkCircle, chevronForward, cloudDownloadOutline, cloudOfflineOutline, searchOutline });
+    addIcons({ checkmarkCircle, chevronForward, cloudDownloadOutline, searchOutline });
   }
 
   async confirmDownloadAll(): Promise<void> {

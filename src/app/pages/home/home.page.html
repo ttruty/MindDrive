@@ -45,6 +45,8 @@
         </div>
       }
     }
+  } @else if (data.error()) {
+    <app-load-error (retry)="data.reload()"></app-load-error>
   } @else {
     <div class="md-center"><ion-spinner name="crescent"></ion-spinner></div>
   }

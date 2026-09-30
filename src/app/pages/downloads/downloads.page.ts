@@ -17,6 +17,7 @@ import { DownloadsService, downloadSize } from '../../core/downloads.service';
 import { LibraryService } from '../../core/library.service';
 import { DownloadedMedia, DriveNode } from '../../core/models';
 import { PlayerLauncher } from '../../player/player-launcher.service';
+import { LoadErrorComponent } from '../../shared/load-error/load-error.component';
 import {
   displayName,
   formatBytes,
@@ -33,7 +34,17 @@ interface DownloadGroup {
   selector: 'app-downloads',
   templateUrl: 'downloads.page.html',
   styleUrls: ['downloads.page.scss'],
-  imports: [RouterLink, IonHeader, IonToolbar, IonTitle, IonContent, IonIcon, IonButton, IonProgressBar],
+  imports: [
+    RouterLink,
+    IonHeader,
+    IonToolbar,
+    IonTitle,
+    IonContent,
+    IonIcon,
+    IonButton,
+    IonProgressBar,
+    LoadErrorComponent,
+  ],
 })
 export class DownloadsPage {
   readonly downloads = inject(DownloadsService);

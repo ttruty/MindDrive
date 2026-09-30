@@ -81,5 +81,7 @@
         <ion-button shape="round" class="md-placeholder__action" routerLink="/tabs/explore">Explore sessions</ion-button>
       </section>
     }
+  } @else if (contents.error()) {
+    <app-load-error (retry)="contents.reload()"></app-load-error>
   }
 </ion-content>

@@ -63,6 +63,8 @@
 
 .heatmap {
   --cell-gap: 4px;
+  // Cells scale with width on phones but shouldn't balloon on tablets / desktop.
+  max-width: 440px;
 }
 
 .heatmap__months,
@@ -125,5 +127,27 @@
 
   span:last-child {
     margin-inline-start: 2px;
+  }
+}
+
+// Wide screens: numbers on the left, heatmap on the right.
+@media (min-width: 768px) {
+  .streak {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 440px);
+    grid-template-rows: auto 1fr;
+    column-gap: 32px;
+    align-items: start;
+  }
+
+  .streak__top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .heatmap {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    width: 100%;
   }
 }

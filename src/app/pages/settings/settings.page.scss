@@ -65,6 +65,7 @@ ion-list-header {
 
 .md-avatar-fallback {
   display: grid;
+  border-radius: 50%; // ion-avatar only rounds slotted <img>s
   place-items: center;
   width: 100%;
   height: 100%;
@@ -78,4 +79,13 @@ ion-list-header {
   border-radius: var(--md-radius-lg);
   box-shadow: var(--md-shadow);
   --ion-item-background: var(--md-surface);
+}
+
+@media (min-width: 768px) {
+  ion-list-header,
+  .md-card,
+  .md-list {
+    width: min(640px, 100% - 32px);
+    margin-inline: auto;
+  }
 }

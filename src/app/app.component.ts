@@ -1,5 +1,6 @@
 import { Component, effect, inject } from '@angular/core';
 import { IonApp, IonRouterOutlet, ToastController } from '@ionic/angular';
+import { AppUpdateService } from './core/app-update.service';
 import { DownloadsService } from './core/downloads.service';
 import { GoogleAuthService } from './core/google-auth.service';
 import { LibraryService } from './core/library.service';
@@ -16,6 +17,7 @@ export class AppComponent {
   private readonly toastCtrl = inject(ToastController);
 
   constructor() {
+    inject(AppUpdateService).init();
     void this.restoreSession();
 
     // Downloads run in the background (often several at once), so failures surface app-wide.

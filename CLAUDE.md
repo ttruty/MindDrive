@@ -119,28 +119,28 @@ expose raw Drive chrome (file icons, "My Drive," etc.).
 | 3 | Player: audio/video playback (authenticated blob fetch), custom controls, resume position | ✅ Done |
 | 4 | Downloads: store blobs in `mediaBlobs`, prefer local blob over network, Downloads tab UI, storage usage + delete | ✅ Done |
 | 5 | Streak: `streakLog` writes on playback start, streak calc, home heatmap, "Continue listening" | ✅ Done |
-| 6 | Polish: real icons/manifest branding, SW caching strategy, empty/loading/error states, responsive pass | ⏳ Next |
+| 6 | Polish: real icons/manifest branding, SW caching strategy, empty/loading/error states, responsive pass | ✅ Done |
 
 ## 7. Repo conventions (as built)
 
 - **Commands**: `npm start` (dev server on **http://localhost:8100** — matches the OAuth origin),
-  `npm run build` (prod build → `www/`, service worker enabled), `npm test` (Vitest), `npm run lint`
-- The service worker is **disabled in dev** (`isDevMode()`); test PWA behaviour against a prod build
-  served statically, e.g. `npx http-server www -p 8100 -s --proxy 'http://localhost:8100?'`
+  `npm run build` (prod build → `www/`, service worker enabled), `npm run preview` (prod build served on
+  :8100 with the service worker), `npm test` (Vitest), `npm run lint`
+- The service worker is **disabled in dev** (`isDevMode()`). Test PWA behaviour with `npm run preview`.
+  Stop `npm start` first; both use port 8100.
 - **Layout**
   - `src/app/tabs/` — tab shell (`tabs.page.*`) and child routes (`tabs.routes.ts`): `/tabs/home|explore|downloads|settings`,
     plus `/tabs/explore/:folderId` (category drill-down, stacked inside the Explore tab)
   - `src/app/pages/<name>/` — one folder per tab page (standalone, `IonXxx` imports from `@ionic/angular`)
   - `src/app/core/` — services and models (see §8); future player/streak services go here too
   - `src/app/shared/` — reusable UI (`category-card`, `session-list`) and `display.ts` helpers
-- **Theme**: `src/theme/variables.scss` defines the Ionic color palette + surfaces for light and dark
+- **Theme** (AA contrast checked in Phase 6): `src/theme/variables.scss` defines the Ionic color palette + surfaces for light and dark
   (`prefers-color-scheme`). Dark overrides use `:root, :root.ios, :root.md` to beat Ionic's
   `dark.system.css` specificity. App-specific tokens are `--md-*` (surface, radius, shadow, orb gradient) —
   use these instead of raw hex in components. Shared global styles (e.g. `.md-placeholder` empty state)
   live in `src/global.scss`.
-- **PWA**: `public/manifest.webmanifest` + `public/icons/*` (placeholder Angular icons until Phase 6),
-  `ngsw-config.json` (app shell prefetch, assets lazy). Drive media must **never** go through ngsw
-  caching — offline media lives in IndexedDB (`mediaBlobs`).
+- **PWA**: `public/manifest.webmanifest` + `public/icons/*` + `ngsw-config.json`. See §13. Drive media must
+  **never** go through ngsw caching; offline media lives in IndexedDB (`mediaBlobs`).
 
 ## 8. Core services (Phase 1, as built)
 
@@ -311,3 +311,55 @@ All in `src/app/core/`, `providedIn: 'root'`, state exposed as read-only signals
   - Welcome empty state when there's no library and no history.
   - `now` refreshes on `ionViewWillEnter` and `visibilitychange`, so the date rolls over when the app is
     reopened the next day.
+
+## 13. Polish (Phase 6, as built)
+
+- **Icons**:
+  - SVG masters live in `design/icons/`: `icon.svg` (rounded square, transparent corners), `icon-maskable.svg`
+    (full bleed, artwork within the 80% safe zone), `icon-apple.svg` (full bleed; iOS rounds it) and
+    `favicon.svg` (thicker artwork for small sizes).
+  - `scripts/render-icons.mjs` renders them into `public/icons/` with Playwright + Chrome; setup is described
+    at the top of the file.
+  - Output: `icon-{72…512}.png` (any), `maskable-{192,512}.png`, `apple-touch-icon.png` (180),
+    `favicon-32x32.png` and `favicon.svg`.
+- **Manifest**: separate `any` and `maskable` icon entries (never the combined "maskable any"), plus `id`,
+  `lang`, `categories`, and `shortcuts` to Explore and Downloads.
+- **`index.html`**: SVG + PNG favicons, apple-touch-icon, theme-color for light and dark, preconnect to
+  accounts.google.com and googleapis.com, an inline background colour so dark mode doesn't flash white,
+  and a styled `<noscript>`.
+- **Service worker** (`ngsw-config.json`):
+  - `app-shell` prefetches `index.html`, the manifest and all JS/CSS, including the lazy chunks. A full
+    reload while offline works (checked).
+  - `icons` prefetches the few icons the shell uses; other images load lazily.
+  - `navigationRequestStrategy: performance`. There are no `dataGroups`; nothing from Google is cached by the SW.
+  - **Bypass:** `DriveApiService` adds `ngsw-bypass=true` to Drive requests so large media doesn't go through
+    the SW. The `ngsw-bypass` *header* can't be used: googleapis.com's CORS preflight rejects it (403). If
+    Drive ever answers 400, the parameter is dropped for the rest of the session.
+  - **Updates:** `core/app-update.service.ts` (started from `AppComponent`) shows a "new version is ready —
+    Reload / Later" toast on `VERSION_READY`, forces a reload on `unrecoverable`, and checks hourly.
+- **Status and errors**:
+  - `core/network.service.ts` provides an `online` signal from navigator.onLine and its events.
+  - `shared/library-banner` sits at the top of Explore and Category and shows the most important of:
+    offline, needs reconnect (with a one-tap Reconnect), or last refresh failed (Retry).
+  - While offline, session rows that can't play are dimmed and their download button is hidden.
+  - `shared/load-error` is shown by Home, Explore, Category and Downloads when their `resource()` fails
+    (IndexedDB unavailable, e.g. some private modes), with a Try again button that calls `resource.reload()`.
+- **Accessibility**: light-theme text colours now meet WCAG AA 4.5:1:
+  - primary `#b8562d` (terracotta; white text on it 4.8:1)
+  - medium `#6e6880`
+  - secondary `#4d7a69`
+  - danger `#c0392b`
+  - inactive tab labels use medium
+  Decorative gradients keep the lighter apricot tones.
+- **Responsive**:
+  - Wide screens use `width: min(880px, 100% - 32px)` (640px for Settings), so there's always a 16px gutter.
+  - From 768px up, the streak card puts the numbers left and the heatmap right; heatmap cells are capped
+    via `max-width: 440px`.
+  - Landscape phones (max-height 540px) get a two-column player: artwork left, title and controls right.
+- **README.md** covers Google Cloud setup, commands, deployment (HTTPS, SPA fallback to index.html, root base
+  href, add the production origin to the OAuth client) and icon regeneration.
+
+### Ideas beyond the spec (not built)
+- Mini-player / background playback when the player is closed.
+- Stream long videos with MediaSource + Range requests instead of downloading the whole file first.
+- Background download of a whole category via Background Fetch (Chromium only).

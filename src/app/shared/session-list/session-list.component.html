@@ -1,6 +1,6 @@
 <ul class="rows">
   @for (session of sessions(); track session.id) {
-    <li class="row">
+    <li class="row" [class.row--unavailable]="!network.online() && !downloads.ids().has(session.id)">
       <button type="button" class="row__main ion-activatable" (click)="sessionSelect.emit(session)">
         <span class="row__play" aria-hidden="true"><ion-icon name="play"></ion-icon></span>
         <span class="row__text">
@@ -9,7 +9,9 @@
         </span>
         <ion-ripple-effect></ion-ripple-effect>
       </button>
-      <app-download-button [node]="session"></app-download-button>
+      @if (network.online() || downloads.ids().has(session.id)) {
+        <app-download-button [node]="session"></app-download-button>
+      }
     </li>
   }
 </ul>

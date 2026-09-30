@@ -1,0 +1,22 @@
+@switch (kind()) {
+  @case ('offline') {
+    <p class="banner" role="status">
+      <ion-icon name="cloud-offline-outline" aria-hidden="true"></ion-icon>
+      <span>You're offline. Downloaded sessions are ready to play.</span>
+    </p>
+  }
+  @case ('reconnect') {
+    <p class="banner" role="status">
+      <ion-icon name="sync-outline" aria-hidden="true"></ion-icon>
+      <span>Reconnect Google Drive to stream sessions and refresh your library.</span>
+      <button type="button" (click)="reconnect()">Reconnect</button>
+    </p>
+  }
+  @case ('sync-failed') {
+    <p class="banner" role="status">
+      <ion-icon name="cloud-offline-outline" aria-hidden="true"></ion-icon>
+      <span>Showing your saved library — couldn't refresh just now.</span>
+      <button type="button" (click)="retrySync()">Retry</button>
+    </p>
+  }
+}

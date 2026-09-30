@@ -11,6 +11,7 @@ import { StreakService } from '../../core/streak.service';
 import { PlayerLauncher } from '../../player/player-launcher.service';
 import { CategoryCardComponent } from '../../shared/category-card/category-card.component';
 import { displayName, formatDuration } from '../../shared/display';
+import { LoadErrorComponent } from '../../shared/load-error/load-error.component';
 import { StreakCardComponent } from './streak-card/streak-card.component';
 
 /** How many quick-pick categories Home shows. */
@@ -31,6 +32,7 @@ const QUICK_PICKS = 4;
     IonSpinner,
     StreakCardComponent,
     CategoryCardComponent,
+    LoadErrorComponent,
   ],
 })
 export class HomePage {

@@ -15,6 +15,8 @@
     </ion-toolbar>
   </ion-header>
 
+  <app-library-banner></app-library-banner>
+
   @if (!library.root()) {
     <!-- Not set up yet -->
     <section class="md-placeholder">
@@ -53,10 +55,6 @@
       }
     </section>
   } @else if (contents.value(); as c) {
-    @if (library.syncError()) {
-      <p class="md-banner"><ion-icon name="cloud-offline-outline" aria-hidden="true"></ion-icon>Showing your saved library — couldn't refresh just now.</p>
-    }
-
     @if (isEmpty()) {
       <section class="md-placeholder">
         <div class="md-placeholder__orb"><ion-icon name="folder-open-outline" aria-hidden="true"></ion-icon></div>
@@ -82,6 +80,8 @@
         (sessionSelect)="openSession($event)"
       ></app-session-list>
     }
+  } @else if (contents.error()) {
+    <app-load-error (retry)="contents.reload()"></app-load-error>
   } @else {
     <div class="md-center"><ion-spinner name="crescent"></ion-spinner></div>
   }

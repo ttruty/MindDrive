@@ -1,0 +1,44 @@
+:host {
+  display: block;
+}
+
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 16px 0;
+  padding: 10px 14px;
+  border-radius: var(--md-radius-md);
+  background: var(--md-surface-muted);
+  color: var(--ion-color-medium);
+  font-size: 0.85rem;
+  line-height: 1.35;
+
+  ion-icon {
+    flex: none;
+    font-size: 18px;
+  }
+
+  span {
+    flex: 1;
+  }
+
+  button {
+    flex: none;
+    padding: 6px 10px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--ion-color-primary);
+    color: var(--ion-color-primary-contrast);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+}
+
+@media (min-width: 768px) {
+  .banner {
+    width: min(880px, 100% - 32px);
+    margin-inline: auto;
+  }
+}

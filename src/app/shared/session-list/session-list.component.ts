@@ -1,8 +1,10 @@
-import { Component, output, input } from '@angular/core';
+import { Component, inject, input, output } from '@angular/core';
 import { IonIcon, IonRippleEffect } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { play as playIcon } from 'ionicons/icons';
+import { DownloadsService } from '../../core/downloads.service';
 import { DriveNode } from '../../core/models';
+import { NetworkService } from '../../core/network.service';
 import { displayName, formatDuration } from '../display';
 import { DownloadButtonComponent } from '../download-button/download-button.component';
 
@@ -18,6 +20,8 @@ export class SessionListComponent {
   readonly sessionSelect = output<DriveNode>();
 
   protected readonly displayName = displayName;
+  protected readonly network = inject(NetworkService);
+  protected readonly downloads = inject(DownloadsService);
 
   constructor() {
     addIcons({ play: playIcon });

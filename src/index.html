@@ -15,19 +15,31 @@
   <meta name="format-detection" content="telephone=no"/>
   <meta name="msapplication-tap-highlight" content="no"/>
 
-  <link rel="icon" type="image/png" href="icons/icon-96x96.png"/>
+  <link rel="icon" type="image/svg+xml" href="icons/favicon.svg"/>
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png"/>
 
   <!-- add to homescreen for ios -->
   <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
   <meta name="apple-mobile-web-app-title" content="MindDrive"/>
-  <link rel="apple-touch-icon" href="icons/icon-192x192.png"/>
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png"/>
   <link rel="manifest" href="manifest.webmanifest">
+
+  <!-- Warm up connections used right after launch (sign-in + Drive API). -->
+  <link rel="preconnect" href="https://accounts.google.com"/>
+  <link rel="preconnect" href="https://www.googleapis.com"/>
+
+  <!-- Match the theme before CSS loads so dark mode doesn't flash white. -->
+  <style>
+    html { background: #fbf8f4; }
+    @media (prefers-color-scheme: dark) { html { background: #16151d; } }
+    .md-noscript { font: 16px/1.5 system-ui, sans-serif; color: #6e6880; text-align: center; padding: 4rem 1.5rem; }
+  </style>
 </head>
 
 <body>
   <app-root></app-root>
-  <noscript>Please enable JavaScript to continue using this application.</noscript>
+  <noscript><p class="md-noscript">MindDrive needs JavaScript to run. Please enable it and reload.</p></noscript>
 </body>
 
 </html>

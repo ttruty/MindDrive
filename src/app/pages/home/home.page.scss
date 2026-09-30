@@ -78,6 +78,6 @@
 
 @media (min-width: 768px) {
   .resume {
-    width: 100%;
+    width: min(880px, 100% - 32px);
   }
 }

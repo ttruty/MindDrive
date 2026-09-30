@@ -14,6 +14,10 @@
   box-shadow: var(--md-shadow);
 }
 
+.row--unavailable {
+  opacity: 0.5;
+}
+
 .row__main {
   position: relative;
   overflow: hidden;

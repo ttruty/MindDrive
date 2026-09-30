@@ -29,14 +29,15 @@
 :root {
   --ion-font-family: ui-rounded, 'SF Pro Rounded', 'Nunito', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 
-  @include ion-color('primary', #e07a4f, #ffffff);   // warm apricot
-  @include ion-color('secondary', #5e8c7a, #ffffff); // sage
+  // Text-bearing colours meet WCAG AA (4.5:1) on the light surfaces; gradients stay lighter.
+  @include ion-color('primary', #b8562d, #ffffff);   // terracotta — white text 4.8:1, as text 4.5:1
+  @include ion-color('secondary', #4d7a69, #ffffff); // sage — 4.9:1
   @include ion-color('tertiary', #8b7fd1, #ffffff);  // lavender
   @include ion-color('success', #4f9d69, #ffffff);
   @include ion-color('warning', #e9b949, #2e2a3b);
-  @include ion-color('danger', #d9534f, #ffffff);
+  @include ion-color('danger', #c0392b, #ffffff);
   @include ion-color('light', #f4efe8, #2e2a3b);
-  @include ion-color('medium', #8a8497, #ffffff);
+  @include ion-color('medium', #6e6880, #ffffff); // secondary text — 5.0:1 on the page background
   @include ion-color('dark', #2e2a3b, #ffffff);
 
   @include surfaces(#fbf8f4, #2e2a3b);
@@ -45,7 +46,7 @@
   --ion-toolbar-border-color: transparent;
   --ion-tab-bar-background: #ffffff;
   --ion-tab-bar-border-color: #efe8df;
-  --ion-tab-bar-color: #a39db0;
+  --ion-tab-bar-color: #6e6880;
   --ion-tab-bar-color-selected: var(--ion-color-primary);
   --ion-card-background: #ffffff;
   --ion-item-background: transparent;
@@ -77,7 +78,7 @@
     --ion-toolbar-background: #16151d;
     --ion-tab-bar-background: #1e1c27;
     --ion-tab-bar-border-color: #2a2834;
-    --ion-tab-bar-color: #77718a;
+    --ion-tab-bar-color: #8a849c;
     --ion-card-background: #211f2a;
 
     --md-surface: #211f2a;

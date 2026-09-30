@@ -35,6 +35,13 @@ export class DriveApiError extends Error {
 export class DriveApiService {
   private readonly auth = inject(GoogleAuthService);
 
+  /**
+   * Ask the Angular service worker not to proxy Drive traffic (large media bodies gain nothing from
+   * passing through it). The `ngsw-bypass` *header* fails Google's CORS preflight, so it goes in the
+   * query string; if Drive ever rejects that with a 400 we drop it for the rest of the session.
+   */
+  private swBypass = true;
+
   /** Metadata for a single file or folder (parentId is left null — callers know the context). */
   async getFile(id: string): Promise<DriveNode> {
     const file = await this.get<DriveFile>(`files/${encodeURIComponent(id)}`, {
@@ -106,14 +113,20 @@ export class DriveApiService {
     path: string,
     opts: { params: Record<string, string>; signal?: AbortSignal },
   ): Promise<Response> {
-    const url = `${API}/${path}?${new URLSearchParams(opts.params)}`;
-
     for (let attempt = 0; ; attempt++) {
+      const withBypass = this.swBypass;
+      const params = withBypass ? { ...opts.params, 'ngsw-bypass': 'true' } : opts.params;
+      const url = `${API}/${path}?${new URLSearchParams(params)}`;
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${await this.auth.getAccessToken()}` },
         signal: opts.signal,
       });
       if (res.ok) return res;
+      if (res.status === 400 && withBypass) {
+        this.swBypass = false;
+        attempt--; // not a real attempt — just retry without the parameter
+        continue;
+      }
 
       const retryable =
         (res.status === 401 && attempt === 0) ||

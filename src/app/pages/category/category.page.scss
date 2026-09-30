@@ -107,7 +107,7 @@
 @media (min-width: 768px) {
   .crumbs,
   .hero {
-    max-width: 880px;
+    width: min(880px, 100% - 32px);
     margin-inline: auto;
   }
 }

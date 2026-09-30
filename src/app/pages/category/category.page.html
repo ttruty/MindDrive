@@ -12,6 +12,8 @@
     <ion-refresher-content></ion-refresher-content>
   </ion-refresher>
 
+  <app-library-banner></app-library-banner>
+
   @if (contents.value(); as c) {
     <nav class="crumbs" aria-label="Breadcrumb">
       @for (crumb of c.crumbs; track crumb.url) {
@@ -42,10 +44,6 @@
       }
     </header>
 
-    @if (library.syncError()) {
-      <p class="md-banner"><ion-icon name="cloud-offline-outline" aria-hidden="true"></ion-icon>Showing your saved library — couldn't refresh just now.</p>
-    }
-
     @if (c.categories.length) {
       <h2 class="md-section-title">{{ c.sessions.length ? 'Collections' : 'Explore ' + title() }}</h2>
       <div class="md-card-grid">
@@ -69,6 +67,8 @@
     }
   } @else if (contents.isLoading()) {
     <div class="md-center"><ion-spinner name="crescent"></ion-spinner></div>
+  } @else if (contents.error()) {
+    <app-load-error (retry)="contents.reload()"></app-load-error>
   } @else {
     <section class="md-placeholder">
       <div class="md-placeholder__orb"><ion-icon name="search-outline" aria-hidden="true"></ion-icon></div>
