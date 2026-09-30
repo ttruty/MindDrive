@@ -1,0 +1,88 @@
+// MindDrive theme — calm, soft, rounded. Light + dark via prefers-color-scheme.
+// https://ionicframework.com/docs/theming/
+@use 'sass:color';
+
+@mixin ion-color($name, $base, $contrast) {
+  --ion-color-#{$name}: #{$base};
+  --ion-color-#{$name}-rgb: #{color.channel($base, 'red', $space: rgb)}, #{color.channel($base, 'green', $space: rgb)}, #{color.channel($base, 'blue', $space: rgb)};
+  --ion-color-#{$name}-contrast: #{$contrast};
+  --ion-color-#{$name}-contrast-rgb: #{color.channel($contrast, 'red', $space: rgb)}, #{color.channel($contrast, 'green', $space: rgb)}, #{color.channel($contrast, 'blue', $space: rgb)};
+  --ion-color-#{$name}-shade: #{color.mix(#000, $base, 12%)};
+  --ion-color-#{$name}-tint: #{color.mix(#fff, $base, 10%)};
+}
+
+@mixin surfaces($bg, $text) {
+  --ion-background-color: #{$bg};
+  --ion-background-color-rgb: #{color.channel($bg, 'red', $space: rgb)}, #{color.channel($bg, 'green', $space: rgb)}, #{color.channel($bg, 'blue', $space: rgb)};
+  --ion-text-color: #{$text};
+  --ion-text-color-rgb: #{color.channel($text, 'red', $space: rgb)}, #{color.channel($text, 'green', $space: rgb)}, #{color.channel($text, 'blue', $space: rgb)};
+
+  // Ionic's step scale blends background -> text; generate it so every component matches.
+  @for $i from 1 through 19 {
+    $step: $i * 50;
+    --ion-background-color-step-#{$step}: #{color.mix($text, $bg, $i * 5%)};
+    --ion-text-color-step-#{$step}: #{color.mix($bg, $text, $i * 5%)};
+  }
+}
+
+// ---- Light --------------------------------------------------------------
+:root {
+  --ion-font-family: ui-rounded, 'SF Pro Rounded', 'Nunito', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  @include ion-color('primary', #e07a4f, #ffffff);   // warm apricot
+  @include ion-color('secondary', #5e8c7a, #ffffff); // sage
+  @include ion-color('tertiary', #8b7fd1, #ffffff);  // lavender
+  @include ion-color('success', #4f9d69, #ffffff);
+  @include ion-color('warning', #e9b949, #2e2a3b);
+  @include ion-color('danger', #d9534f, #ffffff);
+  @include ion-color('light', #f4efe8, #2e2a3b);
+  @include ion-color('medium', #8a8497, #ffffff);
+  @include ion-color('dark', #2e2a3b, #ffffff);
+
+  @include surfaces(#fbf8f4, #2e2a3b);
+
+  --ion-toolbar-background: #fbf8f4;
+  --ion-toolbar-border-color: transparent;
+  --ion-tab-bar-background: #ffffff;
+  --ion-tab-bar-border-color: #efe8df;
+  --ion-tab-bar-color: #a39db0;
+  --ion-tab-bar-color-selected: var(--ion-color-primary);
+  --ion-card-background: #ffffff;
+  --ion-item-background: transparent;
+
+  // App-specific tokens (use these in components, not raw hex)
+  --md-surface: #ffffff;
+  --md-surface-muted: #f4efe8;
+  --md-radius-lg: 24px;
+  --md-radius-md: 16px;
+  --md-shadow: 0 6px 24px rgba(46, 42, 59, 0.06);
+  --md-orb-gradient: linear-gradient(135deg, #f6b38e 0%, #e07a4f 55%, #c9658f 100%);
+}
+
+// ---- Dark ---------------------------------------------------------------
+@media (prefers-color-scheme: dark) {
+  // Match the specificity of Ionic's dark.system.css (:root.ios / :root.md) so ours wins.
+  :root,
+  :root.ios,
+  :root.md {
+    @include ion-color('primary', #f0946a, #1b1a22);
+    @include ion-color('secondary', #7fb09c, #1b1a22);
+    @include ion-color('tertiary', #a79cf0, #1b1a22);
+    @include ion-color('light', #2a2834, #f3eee8);
+    @include ion-color('medium', #9a94a8, #1b1a22);
+    @include ion-color('dark', #f3eee8, #1b1a22);
+
+    @include surfaces(#16151d, #f3eee8);
+
+    --ion-toolbar-background: #16151d;
+    --ion-tab-bar-background: #1e1c27;
+    --ion-tab-bar-border-color: #2a2834;
+    --ion-tab-bar-color: #77718a;
+    --ion-card-background: #211f2a;
+
+    --md-surface: #211f2a;
+    --md-surface-muted: #2a2834;
+    --md-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+    --md-orb-gradient: linear-gradient(135deg, #f0946a 0%, #c9658f 60%, #8b7fd1 100%);
+  }
+}

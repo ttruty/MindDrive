@@ -1,0 +1,114 @@
+/*
+ * App Global CSS
+ * ----------------------------------------------------------------------------
+ * Put style rules here that you want to apply globally. These styles are for
+ * the entire app and not just one component. Additionally, this file can be
+ * used as an entry point to import other CSS/Sass files to be included in the
+ * output CSS.
+ * For more information on global stylesheets, visit the documentation:
+ * https://ionicframework.com/docs/layout/global-stylesheets
+ */
+
+/* Core CSS required for Ionic components to work properly */
+@import "@ionic/angular/css/core.css";
+
+/* Basic CSS for apps built with Ionic */
+@import "@ionic/angular/css/normalize.css";
+@import "@ionic/angular/css/structure.css";
+@import "@ionic/angular/css/typography.css";
+@import "@ionic/angular/css/display.css";
+
+/* Optional CSS utils that can be commented out */
+@import "@ionic/angular/css/padding.css";
+@import "@ionic/angular/css/float-elements.css";
+@import "@ionic/angular/css/text-alignment.css";
+@import "@ionic/angular/css/text-transformation.css";
+@import "@ionic/angular/css/flex-utils.css";
+
+/**
+ * Ionic Dark Mode
+ * -----------------------------------------------------
+ * For more info, please see:
+ * https://ionicframework.com/docs/theming/dark-mode
+ */
+
+/* @import "@ionic/angular/css/palettes/dark.always.css"; */
+/* @import "@ionic/angular/css/palettes/dark.class.css"; */
+@import '@ionic/angular/css/palettes/dark.system.css';
+
+/*
+ * MindDrive global styles
+ * -----------------------------------------------------
+ */
+ion-title[size='large'] {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+ion-header.header-md {
+  box-shadow: none;
+}
+
+ion-tab-bar {
+  --border: 1px solid var(--ion-tab-bar-border-color);
+  height: 64px;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+ion-tab-button {
+  --ripple-color: transparent;
+  font-weight: 600;
+}
+
+ion-card {
+  border-radius: var(--md-radius-lg);
+  box-shadow: var(--md-shadow);
+}
+
+// Shared empty-state block used by placeholder pages (Phase 0) and later empty states.
+.md-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 48px 32px;
+  max-width: 420px;
+  margin: 8vh auto 0;
+
+  h2 {
+    margin: 24px 0 8px;
+    font-size: 1.35rem;
+    font-weight: 700;
+  }
+
+  p {
+    margin: 0;
+    color: var(--ion-color-medium);
+    line-height: 1.5;
+  }
+}
+
+.md-placeholder__orb {
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--md-orb-gradient);
+  box-shadow: var(--md-shadow);
+  animation: md-breathe 6s ease-in-out infinite;
+
+  ion-icon {
+    font-size: 44px;
+    color: #fff;
+  }
+}
+
+@keyframes md-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .md-placeholder__orb { animation: none; }
+}

@@ -1,0 +1,124 @@
+# MindDrive — Headspace-style PWA driven by Google Drive
+
+Living spec for this repo. Read it fully at the start of every session and keep it updated
+(phase status, decisions, deviations) as work lands.
+
+## 1. Project overview
+
+A single-user Angular + Ionic PWA that turns a personal Google Drive folder into a Headspace-like
+meditation/audio app: browse content organized by Drive folders, stream or download sessions for
+offline playback, and track a daily streak on the home screen.
+
+Single user, single Google account, no backend — everything lives client-side (IndexedDB) after OAuth.
+
+## 2. Tech stack
+
+- **Angular 22** (standalone components, signals for state) + **Ionic 9** (`@ionic/angular`) for UI shell/navigation
+  - The spec originally said Ionic 8; the current Ionic CLI starter scaffolds Ionic 9 / Angular 22, so we're on those.
+- **PWA**: Angular service worker (`@angular/pwa` / `@angular/service-worker`) for app-shell caching; installable manifest
+- **Auth**: Google Identity Services (GIS), scope `https://www.googleapis.com/auth/drive.readonly`
+- **Drive API v3**: `files.list` (walk folder tree via `parents` + `mimeType` queries), `files.get?alt=media` for content
+- **Offline storage**: IndexedDB via the `idb` library — three object stores: `driveCache` (folder/file metadata),
+  `mediaBlobs` (downloaded audio/video blobs + metadata), `streakLog` (date strings of days with activity)
+- **Playback**: native `<video>`/`<audio>` with a custom control bar; blob URLs for downloaded content,
+  fetch + Blob URL (with `Authorization: Bearer <token>`) for streamed content — Drive's `alt=media`
+  endpoint needs the auth header, so a plain `src=url` won't work
+- **Capacitor is not in scope** — pure installable PWA first. The Ionic starter's Capacitor integration
+  was deliberately removed in Phase 0; a native wrap can come later.
+
+## 3. Core data model (IndexedDB)
+
+```ts
+// driveCache store — mirrors the Drive folder tree under the configured root
+interface DriveNode {
+  id: string;            // Drive file/folder id
+  name: string;
+  parentId: string | null;
+  mimeType: string;      // 'application/vnd.google-apps.folder' or audio/video mime
+  isFolder: boolean;
+  sizeBytes?: number;
+  modifiedTime?: string;
+}
+
+// mediaBlobs store — downloaded content
+interface DownloadedMedia {
+  driveId: string;       // matches DriveNode.id
+  name: string;
+  folderPath: string;    // human-readable breadcrumb, e.g. "Sleep / Deep Rest"
+  mimeType: string;
+  blob: Blob;
+  downloadedAt: string;  // ISO date
+  lastPositionSec?: number; // resume playback
+}
+
+// streakLog store — one entry per calendar day with any playback
+interface StreakEntry {
+  date: string;   // 'YYYY-MM-DD', local time
+  sessionsPlayed: number; // count, for stats — not required for the streak itself
+}
+```
+
+Streak day counts on any playback started that day (no minimum duration). Current streak = consecutive
+days ending today or yesterday; longest streak = max run in the log. Both computed client-side from
+`streakLog`, no server.
+
+## 4. Screens / flow
+
+- **Home** (tab 1): streak grid (12-week GitHub-style heatmap, current streak number, longest streak),
+  "Continue listening" card (last played, with resume position), 3–4 quick-pick category cards
+- **Explore** (tab 2): Drive folder browser starting at the configured root — folders render as category
+  cards (representative icon/color, no thumbnails needed); tapping in shows subfolders and files; files
+  render as a session list (name, duration if known, downloaded badge)
+- **Player** (modal/full screen): cover art placeholder, title, breadcrumb, transport controls, download
+  toggle, scrubber that writes `lastPositionSec` periodically
+- **Downloads** (tab 3): everything in `mediaBlobs`, storage used, per-item delete, "download all in folder"
+- **Settings** (tab 4): Google sign-in/sign-out, root folder picker (paste a folder ID/link or
+  browse-to-select), clear cache, clear downloads
+
+Navigation should feel like Headspace, not a file browser: folders are framed as "categories," never
+expose raw Drive chrome (file icons, "My Drive," etc.).
+
+## 5. Google Drive integration notes
+
+- OAuth via GIS token client (`google.accounts.oauth2.initTokenClient`), `drive.readonly` scope only — no write access
+  - Note for Phase 1: the GIS *token* client is a browser-only implicit-style flow (no PKCE, no refresh
+    token); PKCE applies to the GIS *code* client, which needs a backend to exchange the code. Given
+    "no backend," use the token client and re-request tokens on expiry (~1h).
+- Access token held **in memory only** (not persisted); on reload, attempt a silent re-auth
+  (`requestAccessToken({ prompt: '' })`) if the user has previously consented, otherwise show a
+  "Connect Google Drive" state
+- Root folder is configured once (folder ID, extracted from a pasted Drive URL) and stored locally — not hardcoded
+- List children: `files.list` with `q: "'{parentId}' in parents and trashed = false"`,
+  fields `id, name, mimeType, size, modifiedTime` (handle `nextPageToken` pagination)
+- Treat any `audio/*` or `video/*` mimeType as playable; anything else is hidden, not an error
+
+## 6. Build phases (one Claude Code session each)
+
+| Phase | Scope | Status |
+|---|---|---|
+| 0 | Ionic Angular PWA scaffold, routing, tab shell, theme, this CLAUDE.md | ✅ Done |
+| 1 | Google OAuth (GIS) + Drive service: sign-in/out, token handling, root-folder picker, `files.list` folder-tree walk, `driveCache` store | ⏳ Next |
+| 2 | Explore UI: category cards from top-level folders, drill-down, session list, breadcrumbs | |
+| 3 | Player: audio/video playback (authenticated blob fetch), custom controls, resume position | |
+| 4 | Downloads: store blobs in `mediaBlobs`, prefer local blob over network, Downloads tab UI, storage usage + delete | |
+| 5 | Streak: `streakLog` writes on playback start, streak calc, home heatmap, "Continue listening" | |
+| 6 | Polish: real icons/manifest branding, SW caching strategy, empty/loading/error states, responsive pass | |
+
+## 7. Repo conventions (as built)
+
+- **Commands**: `npm start` (dev server on **http://localhost:8100** — matches the OAuth origin),
+  `npm run build` (prod build → `www/`, service worker enabled), `npm test` (Vitest), `npm run lint`
+- The service worker is **disabled in dev** (`isDevMode()`); test PWA behaviour against a prod build
+  served statically, e.g. `npx http-server www -p 8100 -s --proxy 'http://localhost:8100?'`
+- **Layout**
+  - `src/app/tabs/` — tab shell (`tabs.page.*`) and child routes (`tabs.routes.ts`): `/tabs/home|explore|downloads|settings`
+  - `src/app/pages/<name>/` — one folder per tab page (standalone, `IonXxx` imports from `@ionic/angular`)
+  - Future: `src/app/core/` for services (auth, drive, db, player, streak), `src/app/shared/` for reusable components
+- **Theme**: `src/theme/variables.scss` defines the Ionic color palette + surfaces for light and dark
+  (`prefers-color-scheme`). Dark overrides use `:root, :root.ios, :root.md` to beat Ionic's
+  `dark.system.css` specificity. App-specific tokens are `--md-*` (surface, radius, shadow, orb gradient) —
+  use these instead of raw hex in components. Shared global styles (e.g. `.md-placeholder` empty state)
+  live in `src/global.scss`.
+- **PWA**: `public/manifest.webmanifest` + `public/icons/*` (placeholder Angular icons until Phase 6),
+  `ngsw-config.json` (app shell prefetch, assets lazy). Drive media must **never** go through ngsw
+  caching — offline media lives in IndexedDB (`mediaBlobs`).
