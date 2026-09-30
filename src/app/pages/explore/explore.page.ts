@@ -11,15 +11,14 @@ import {
   IonTitle,
   IonToolbar,
   RefresherCustomEvent,
-  ToastController,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { cloudOfflineOutline, compassOutline, folderOpenOutline, leafOutline } from 'ionicons/icons';
 import { GoogleAuthService } from '../../core/google-auth.service';
 import { LibraryService } from '../../core/library.service';
 import { DriveNode } from '../../core/models';
+import { PlayerLauncher } from '../../player/player-launcher.service';
 import { CategoryCardComponent } from '../../shared/category-card/category-card.component';
-import { displayName } from '../../shared/display';
 import { SessionListComponent } from '../../shared/session-list/session-list.component';
 
 @Component({
@@ -44,14 +43,15 @@ import { SessionListComponent } from '../../shared/session-list/session-list.com
 export class ExplorePage {
   readonly auth = inject(GoogleAuthService);
   readonly library = inject(LibraryService);
-  private readonly toastCtrl = inject(ToastController);
+  private readonly player = inject(PlayerLauncher);
 
   /** Top level of the library, reloaded whenever a sync completes. */
   readonly contents = resource({
     params: () => {
       const root = this.library.root();
       const synced = this.library.lastSync()?.syncedAt;
-      return root && synced ? { rootId: root.id, synced } : undefined;
+      const revision = this.library.revision();
+      return root && synced ? { rootId: root.id, synced, revision } : undefined;
     },
     loader: async ({ params }) => {
       const [children, downloaded] = await Promise.all([
@@ -80,13 +80,7 @@ export class ExplorePage {
     await event.target.complete();
   }
 
-  async openSession(session: DriveNode): Promise<void> {
-    // Replaced by the player in Phase 3.
-    const toast = await this.toastCtrl.create({
-      message: `Playback for “${displayName(session)}” is coming soon.`,
-      duration: 1800,
-      position: 'top',
-    });
-    await toast.present();
+  openSession(session: DriveNode): void {
+    void this.player.open(session);
   }
 }

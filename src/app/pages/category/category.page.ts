@@ -13,13 +13,13 @@ import {
   IonToolbar,
   NavController,
   RefresherCustomEvent,
-  ToastController,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { chevronForward, cloudOfflineOutline, searchOutline } from 'ionicons/icons';
 import { GoogleAuthService } from '../../core/google-auth.service';
 import { LibraryService } from '../../core/library.service';
 import { DriveNode } from '../../core/models';
+import { PlayerLauncher } from '../../player/player-launcher.service';
 import { CategoryCardComponent } from '../../shared/category-card/category-card.component';
 import { categoryAppearance, displayName, sessionCountLabel } from '../../shared/display';
 import { SessionListComponent } from '../../shared/session-list/session-list.component';
@@ -54,13 +54,13 @@ export class CategoryPage {
   readonly auth = inject(GoogleAuthService);
   readonly library = inject(LibraryService);
   private readonly nav = inject(NavController);
-  private readonly toastCtrl = inject(ToastController);
+  private readonly player = inject(PlayerLauncher);
 
   /** Bound from the `:folderId` route param. */
   readonly folderId = input.required<string>();
 
   readonly contents = resource({
-    params: () => ({ id: this.folderId(), synced: this.library.lastSync()?.syncedAt }),
+    params: () => ({ id: this.folderId(), revision: this.library.revision() }),
     loader: async ({ params }) => {
       const [node, trail, children, downloaded] = await Promise.all([
         this.library.getNode(params.id),
@@ -104,14 +104,8 @@ export class CategoryPage {
     await event.target.complete();
   }
 
-  async openSession(session: DriveNode): Promise<void> {
-    // Replaced by the player in Phase 3.
-    const toast = await this.toastCtrl.create({
-      message: `Playback for “${displayName(session)}” is coming soon.`,
-      duration: 1800,
-      position: 'top',
-    });
-    await toast.present();
+  openSession(session: DriveNode): void {
+    void this.player.open(session);
   }
 }
 

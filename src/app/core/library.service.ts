@@ -44,12 +44,15 @@ export class LibraryService {
   private readonly _lastSync = signal<SyncSummary | null>(readJson<SyncSummary>(SYNC_KEY));
   private readonly _progress = signal<SyncProgress | null>(null);
   private readonly _syncError = signal<string | null>(null);
+  private readonly _revision = signal(0);
 
   readonly root = this._root.asReadonly();
   readonly lastSync = this._lastSync.asReadonly();
   /** Non-null while a sync is running. */
   readonly progress = this._progress.asReadonly();
   readonly syncError = this._syncError.asReadonly();
+  /** Bumps on every driveCache write (sync, clear, learned durations). Key cache reads on this. */
+  readonly revision = this._revision.asReadonly();
 
   private currentSync: Promise<boolean> | null = null;
 
@@ -123,6 +126,15 @@ export class LibraryService {
     return trail;
   }
 
+  /** Record a duration learned during playback (Drive only knows video durations). */
+  async setDuration(id: string, durationMs: number): Promise<void> {
+    const db = await this.db.db;
+    const node = await db.get('driveCache', id);
+    if (!node || node.isFolder || node.durationMs === durationMs) return;
+    await db.put('driveCache', { ...node, durationMs });
+    this._revision.update((r) => r + 1);
+  }
+
   /** Drive IDs of sessions saved for offline playback. */
   async getDownloadedIds(): Promise<Set<string>> {
     return new Set(await (await this.db.db).getAllKeys('mediaBlobs'));
@@ -131,6 +143,7 @@ export class LibraryService {
   /** Forget the cached tree (the root folder setting is kept). */
   async clearCache(): Promise<void> {
     await (await this.db.db).clear('driveCache');
+    this._revision.update((r) => r + 1);
     this._lastSync.set(null);
     localStorage.removeItem(SYNC_KEY);
   }
@@ -146,7 +159,9 @@ export class LibraryService {
       const nodes = await this.walk(rootNode);
       countSessions(nodes);
 
-      const tx = (await this.db.db).transaction('driveCache', 'readwrite');
+      const db = await this.db.db;
+      carryOverDurations(nodes, await db.getAll('driveCache'));
+      const tx = db.transaction('driveCache', 'readwrite');
       await tx.store.clear();
       await Promise.all([...nodes.map((n) => tx.store.put(n)), tx.done]);
 
@@ -157,6 +172,7 @@ export class LibraryService {
         sessions: nodes.filter((n) => !n.isFolder).length,
       };
       this._lastSync.set(summary);
+      this._revision.update((r) => r + 1);
       writeJson(SYNC_KEY, summary);
       if (rootNode.name !== root.name) {
         const renamed = { id: root.id, name: rootNode.name };
@@ -217,6 +233,17 @@ function countSessions(nodes: DriveNode[]): void {
     const own = node.isFolder ? (counts.get(node.id) ?? 0) : 1;
     if (node.isFolder) node.sessionCount = own;
     if (node.parentId) counts.set(node.parentId, (counts.get(node.parentId) ?? 0) + own);
+  }
+}
+
+/** Keep durations learned during playback for files that haven't changed since. */
+function carryOverDurations(nodes: DriveNode[], previous: DriveNode[]): void {
+  const known = new Map(previous.filter((n) => n.durationMs).map((n) => [n.id, n]));
+  for (const node of nodes) {
+    const old = known.get(node.id);
+    if (!node.durationMs && old && old.modifiedTime === node.modifiedTime) {
+      node.durationMs = old.durationMs;
+    }
   }
 }
 

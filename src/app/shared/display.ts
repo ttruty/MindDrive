@@ -83,3 +83,12 @@ function hashString(s: string): number {
   h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
   return (h ^ (h >>> 16)) >>> 0;
 }
+
+/** Player clock: "4:05", or "1:02:09" past an hour. */
+export function formatClock(totalSec: number): string {
+  const sec = Math.max(0, Math.floor(Number.isFinite(totalSec) ? totalSec : 0));
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = String(sec % 60).padStart(2, '0');
+  return h ? `${h}:${String(m).padStart(2, '0')}:${s}` : `${m}:${s}`;
+}

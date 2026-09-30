@@ -1,4 +1,10 @@
-import { categoryAppearance, displayName, formatDuration, sessionCountLabel } from './display';
+import {
+  categoryAppearance,
+  displayName,
+  formatClock,
+  formatDuration,
+  sessionCountLabel,
+} from './display';
 
 describe('displayName', () => {
   const file = (name: string) => displayName({ name, isFolder: false });
@@ -43,5 +49,15 @@ describe('categoryAppearance', () => {
     expect(categoryAppearance({ id: 'x', name: 'Misc' })).toEqual(
       categoryAppearance({ id: 'x', name: 'Misc' }),
     );
+  });
+});
+
+describe('formatClock', () => {
+  it('formats m:ss and h:mm:ss', () => {
+    expect(formatClock(0)).toBe('0:00');
+    expect(formatClock(65.9)).toBe('1:05');
+    expect(formatClock(3729)).toBe('1:02:09');
+    expect(formatClock(NaN)).toBe('0:00');
+    expect(formatClock(-4)).toBe('0:00');
   });
 });

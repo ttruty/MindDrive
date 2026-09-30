@@ -111,6 +111,17 @@ describe('LibraryService', () => {
     expect(await TestBed.inject(LibraryService).syncIfStale()).toBe(true);
   });
 
+  it('keeps durations learned during playback across syncs for unchanged files', async () => {
+    await service.setRootFromInput(ROOT_ID);
+    const before = service.revision();
+    await service.setDuration('rest', 420_000);
+    expect(service.revision()).toBe(before + 1);
+    expect((await service.getNode('rest'))?.durationMs).toBe(420_000);
+
+    await service.sync();
+    expect((await service.getNode('rest'))?.durationMs).toBe(420_000);
+  });
+
   it('persists the root across service instances', async () => {
     await service.setRootFromInput(ROOT_ID);
     expect(JSON.parse(localStorage.getItem('md.library.root')!)).toEqual({

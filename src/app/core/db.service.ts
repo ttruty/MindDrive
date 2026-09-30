@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { DBSchema, IDBPDatabase, openDB } from 'idb';
-import { DownloadedMedia, DriveNode, StreakEntry } from './models';
+import { DownloadedMedia, DriveNode, PlaybackEntry, StreakEntry } from './models';
 
 export interface MindDriveDB extends DBSchema {
   driveCache: {
@@ -16,24 +16,35 @@ export interface MindDriveDB extends DBSchema {
     key: string;
     value: StreakEntry;
   };
+  playback: {
+    key: string;
+    value: PlaybackEntry;
+    indexes: { updatedAt: string };
+  };
 }
 
 export const DB_NAME = 'minddrive';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
-/** Owns the single IndexedDB connection. All three stores are created up front. */
+/** Owns the single IndexedDB connection. Each schema version adds its stores in `upgrade`. */
 @Injectable({ providedIn: 'root' })
 export class DbService {
   private dbPromise?: Promise<IDBPDatabase<MindDriveDB>>;
 
   get db(): Promise<IDBPDatabase<MindDriveDB>> {
     this.dbPromise ??= openDB<MindDriveDB>(DB_NAME, DB_VERSION, {
-      upgrade(db) {
-        // The root node has parentId null, which IndexedDB simply leaves out of the index.
-        const cache = db.createObjectStore('driveCache', { keyPath: 'id' });
-        cache.createIndex('parentId', 'parentId');
-        db.createObjectStore('mediaBlobs', { keyPath: 'driveId' });
-        db.createObjectStore('streakLog', { keyPath: 'date' });
+      upgrade(db, oldVersion) {
+        if (oldVersion < 1) {
+          // The root node has parentId null, which IndexedDB simply leaves out of the index.
+          const cache = db.createObjectStore('driveCache', { keyPath: 'id' });
+          cache.createIndex('parentId', 'parentId');
+          db.createObjectStore('mediaBlobs', { keyPath: 'driveId' });
+          db.createObjectStore('streakLog', { keyPath: 'date' });
+        }
+        if (oldVersion < 2) {
+          const playback = db.createObjectStore('playback', { keyPath: 'driveId' });
+          playback.createIndex('updatedAt', 'updatedAt');
+        }
       },
     });
     return this.dbPromise;

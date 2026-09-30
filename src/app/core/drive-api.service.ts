@@ -67,14 +67,53 @@ export class DriveApiService {
     return nodes;
   }
 
+  /**
+   * Download a file's content (`alt=media`) as a Blob. Reports progress as a 0–1 fraction when the
+   * total size is known (Content-Length, else `expectedBytes`). Abort via `signal`.
+   */
+  async downloadMedia(
+    id: string,
+    opts: { signal?: AbortSignal; expectedBytes?: number; onProgress?: (fraction: number) => void } = {},
+  ): Promise<Blob> {
+    const res = await this.request(`files/${encodeURIComponent(id)}`, {
+      params: { alt: 'media', supportsAllDrives: 'true' },
+      signal: opts.signal,
+    });
+    const type = res.headers.get('Content-Type') ?? 'application/octet-stream';
+    const total = Number(res.headers.get('Content-Length')) || opts.expectedBytes || 0;
+    if (!res.body || !opts.onProgress || !total) return res.blob();
+
+    const reader = res.body.getReader();
+    const chunks: Uint8Array<ArrayBuffer>[] = [];
+    let received = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      received += value.byteLength;
+      opts.onProgress(Math.min(received / total, 1));
+    }
+    return new Blob(chunks, { type });
+  }
+
   private async get<T>(path: string, params: Record<string, string>): Promise<T> {
-    const url = `${API}/${path}?${new URLSearchParams(params)}`;
+    const res = await this.request(path, { params });
+    return (await res.json()) as T;
+  }
+
+  /** Authorized GET with one retry on 401 (fresh token) and backoff on rate limits / 5xx. */
+  private async request(
+    path: string,
+    opts: { params: Record<string, string>; signal?: AbortSignal },
+  ): Promise<Response> {
+    const url = `${API}/${path}?${new URLSearchParams(opts.params)}`;
 
     for (let attempt = 0; ; attempt++) {
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${await this.auth.getAccessToken()}` },
+        signal: opts.signal,
       });
-      if (res.ok) return (await res.json()) as T;
+      if (res.ok) return res;
 
       const retryable =
         (res.status === 401 && attempt === 0) ||

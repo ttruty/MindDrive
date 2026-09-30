@@ -18,8 +18,9 @@ Single user, single Google account, no backend — everything lives client-side 
 - **PWA**: Angular service worker (`@angular/pwa` / `@angular/service-worker`) for app-shell caching; installable manifest
 - **Auth**: Google Identity Services (GIS), scope `https://www.googleapis.com/auth/drive.readonly`
 - **Drive API v3**: `files.list` (walk folder tree via `parents` + `mimeType` queries), `files.get?alt=media` for content
-- **Offline storage**: IndexedDB via the `idb` library — three object stores: `driveCache` (folder/file metadata),
-  `mediaBlobs` (downloaded audio/video blobs + metadata), `streakLog` (date strings of days with activity)
+- **Offline storage**: IndexedDB via the `idb` library — object stores: `driveCache` (folder/file metadata),
+  `mediaBlobs` (downloaded audio/video blobs + metadata), `streakLog` (date strings of days with activity),
+  `playback` (resume positions + recently played, added in DB v2 / Phase 3)
 - **Playback**: native `<video>`/`<audio>` with a custom control bar; blob URLs for downloaded content,
   fetch + Blob URL (with `Authorization: Bearer <token>`) for streamed content — Drive's `alt=media`
   endpoint needs the auth header, so a plain `src=url` won't work
@@ -48,7 +49,20 @@ interface DownloadedMedia {
   mimeType: string;
   blob: Blob;
   downloadedAt: string;  // ISO date
-  lastPositionSec?: number; // resume playback
+  lastPositionSec?: number; // unused — resume lives in the playback store (below)
+}
+
+// playback store (DB v2) — resume position + recently played, for streamed AND downloaded sessions
+interface PlaybackEntry {
+  driveId: string;
+  name: string;
+  mimeType: string;
+  parentId: string | null;
+  folderPath: string;     // "Sleep / Deep Rest"
+  positionSec: number;
+  durationSec?: number;
+  completed: boolean;     // played to (near) the end → next play starts over
+  updatedAt: string;      // ISO; indexed, drives "Continue listening"
 }
 
 // streakLog store — one entry per calendar day with any playback
@@ -99,8 +113,8 @@ expose raw Drive chrome (file icons, "My Drive," etc.).
 | 0 | Ionic Angular PWA scaffold, routing, tab shell, theme, this CLAUDE.md | ✅ Done |
 | 1 | Google OAuth (GIS) + Drive service: sign-in/out, token handling, root-folder picker, `files.list` folder-tree walk, `driveCache` store | ✅ Done |
 | 2 | Explore UI: category cards from top-level folders, drill-down, session list, breadcrumbs | ✅ Done |
-| 3 | Player: audio/video playback (authenticated blob fetch), custom controls, resume position | ⏳ Next |
-| 4 | Downloads: store blobs in `mediaBlobs`, prefer local blob over network, Downloads tab UI, storage usage + delete | |
+| 3 | Player: audio/video playback (authenticated blob fetch), custom controls, resume position | ✅ Done |
+| 4 | Downloads: store blobs in `mediaBlobs`, prefer local blob over network, Downloads tab UI, storage usage + delete | ⏳ Next |
 | 5 | Streak: `streakLog` writes on playback start, streak calc, home heatmap, "Continue listening" | |
 | 6 | Polish: real icons/manifest branding, SW caching strategy, empty/loading/error states, responsive pass | |
 
@@ -130,9 +144,10 @@ expose raw Drive chrome (file icons, "My Drive," etc.).
 All in `src/app/core/`, `providedIn: 'root'`, state exposed as read-only signals.
 
 - **`models.ts`** — `DriveNode`, `DownloadedMedia`, `StreakEntry`, `FOLDER_MIME`, `isPlayableMime()`.
-- **`db.service.ts`** — single `idb` connection to DB `minddrive` v1. Creates all three stores up front:
-  `driveCache` (keyPath `id`, index `parentId`), `mediaBlobs` (keyPath `driveId`), `streakLog` (keyPath `date`).
-  Bump `DB_VERSION` and add an upgrade step for any schema change.
+- **`db.service.ts`** — single `idb` connection to DB `minddrive`, currently **v2**. v1: `driveCache` (keyPath `id`,
+  index `parentId`), `mediaBlobs` (keyPath `driveId`), `streakLog` (keyPath `date`). v2: `playback` (keyPath
+  `driveId`, index `updatedAt`). For schema changes, bump `DB_VERSION` and add an `if (oldVersion < N)` block.
+  Never edit an earlier block.
 - **`google-auth.service.ts`** — GIS token client, loads `accounts.google.com/gsi/client` lazily.
   - `status`: `unconfigured` (no client ID) → `initializing` → `signed-out` | `reconnect` | `signed-in`.
   - Token is in memory only. localStorage keeps `md.auth.consented` + `md.auth.hint` (email, used as `login_hint`).
@@ -157,6 +172,10 @@ All in `src/app/core/`, `providedIn: 'root'`, state exposed as read-only signals
     folders whose count is 0. Video `durationMs` comes from Drive's `videoMediaMetadata`; audio has none.
   - `CACHE_FORMAT` is stored in the sync summary. Bump it whenever sync starts computing new fields, and
     `syncIfStale()` will rebuild older caches automatically.
+  - `revision` signal bumps on every `driveCache` write (sync, clear, `setDuration`). UI that reads the cache
+    should key its `resource()` params on it.
+  - `setDuration(id, ms)` records a duration learned during playback. Sync carries learned durations over
+    for files whose `modifiedTime` hasn't changed.
   - `getTrail(id)` returns the folders from just below the root down to `id` (for breadcrumbs).
     `getDownloadedIds()` returns the keys in `mediaBlobs` (for "Downloaded" badges).
 - **Settings** (`pages/settings/`): connect/reconnect/disconnect, library folder via pasted link or the
@@ -187,6 +206,40 @@ All in `src/app/core/`, `providedIn: 'root'`, state exposed as read-only signals
   - `formatDuration()` and `sessionCountLabel()` format durations and "N sessions" labels.
   - `categoryAppearance()` picks an icon from keywords in the name (sleep→moon, focus→bulb, …) and a
     gradient from a hash of the id, so a category looks the same everywhere.
-- **Phase 3 hook:** `openSession()` in `explore.page.ts` and `category.page.ts` currently shows a
-  "coming soon" toast. Replace both with opening the player. The player can also save audio durations
-  it learns back into `driveCache`.
+- Tapping a session calls `PlayerLauncher.open(session)` (Phase 3).
+
+## 10. Player (Phase 3, as built)
+
+- **`core/drive-api.service.ts` `downloadMedia(id, { signal, expectedBytes, onProgress })`**: fetches `alt=media`
+  with the auth header and reads the body stream to report progress (from Content-Length, falling back to
+  `sizeBytes`). Shares the 401-retry / backoff logic with the metadata calls (`request()`).
+- **`core/media-source.service.ts` `resolve(node)`** returns `{ url, source: 'download' | 'stream', release() }`.
+  - A `mediaBlobs` copy always wins, so offline playback already works once Phase 4 stores blobs.
+  - Otherwise it fetches the file and wraps it in an object URL, fixing the MIME type if Drive sends a generic one.
+  - The last streamed file stays in memory, so reopening the same session doesn't download it again.
+  - **Limitation:** the whole file downloads before playback starts (Drive `alt=media` needs a header, so
+    `<audio src>` can't stream it directly). That's fine for typical sessions; long videos take a while.
+    Options if it becomes a problem: MediaSource with Range requests, or download first (Phase 4).
+- **`core/playback.service.ts`**:
+  - `resumePosition(id)` returns 0 if the session is new, under 5 s in, or within 10 s of the end / completed.
+  - `save()` marks a session completed when it's within 10 s of the end.
+  - `recent(limit)` returns sessions newest first. Phase 5's "Continue listening" should use it.
+- **`player/player-launcher.service.ts` `open(session)`** works out the folder path and category look from
+  `getTrail`, then opens `PlayerComponent` as a full-screen modal (`md-player-modal`). Only one player is
+  open at a time.
+- **`player/player.component.*`**:
+  - Inputs are Angular signal inputs, set through `provideIonicAngular({ useSetInputAPI: true })` in `main.ts`.
+    Don't name a property `modal` (reserved by Ionic).
+  - States: loading (shows download progress), error (retry; `AuthRequiredError` → "Reconnect Google Drive…"),
+    and ready.
+  - Audio shows a breathing orb in the category's colours; video shows a `<video playsinline>` with a fullscreen button.
+  - Controls: scrubber (`ion-range`; while dragging it ignores `timeupdate`), ±15 s skip, play/pause, and a
+    "Picked up at m:ss · Start over" chip.
+  - Autoplays once metadata loads; if the browser blocks autoplay, the play button is shown.
+  - Position is saved every 5 s while playing, and on pause, seek, end (completed) and close.
+  - Learned durations are saved with `library.setDuration`.
+  - Media Session API provides lock-screen / headset metadata and play/pause/seek actions, cleared on close.
+  - Closing the player stops playback. There's no mini-player / background playback yet; candidate for Phase 6.
+  - **Phase 5 hook:** `onPlay()` has a comment marking where to record today's `streakLog` entry.
+  - **Phase 4 hook:** the player has no download toggle yet. Add it to the top bar.
+- Component style budget raised to 6 kB warn / 10 kB error (`angular.json`) for the player stylesheet.

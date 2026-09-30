@@ -176,3 +176,10 @@ ion-content::part(scroll) {
     padding-inline: 4px;
   }
 }
+
+// Player is always full screen, including on tablets / desktop.
+ion-modal.md-player-modal {
+  --width: 100%;
+  --height: 100%;
+  --border-radius: 0;
+}

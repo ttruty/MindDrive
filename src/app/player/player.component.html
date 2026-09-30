@@ -1,0 +1,120 @@
+<ion-content class="player" [fullscreen]="true" [style.--player-bg]="appearance().background">
+  <div class="player__inner">
+    <header class="player__top">
+      <ion-button fill="clear" class="player__icon-btn" (click)="close()" aria-label="Close player">
+        <ion-icon slot="icon-only" name="chevron-down"></ion-icon>
+      </ion-button>
+      <span class="player__eyebrow">Now playing</span>
+      @if (isVideo() && status() === 'ready') {
+        <ion-button fill="clear" class="player__icon-btn" (click)="enterFullscreen()" aria-label="Full screen">
+          <ion-icon slot="icon-only" name="expand"></ion-icon>
+        </ion-button>
+      } @else {
+        <span class="player__spacer"></span>
+      }
+    </header>
+
+    <div class="player__stage">
+      @if (isVideo() && src()) {
+        <video
+          #media
+          class="player__video"
+          [src]="src()"
+          playsinline
+          preload="auto"
+          (click)="toggle()"
+          (loadedmetadata)="onLoadedMetadata()"
+          (durationchange)="onDurationChange()"
+          (timeupdate)="onTimeUpdate()"
+          (play)="onPlay()"
+          (pause)="onPause()"
+          (ended)="onEnded()"
+        ></video>
+      } @else {
+        <div class="player__orb" [class.player__orb--breathing]="playing()">
+          <ion-icon [name]="appearance().icon" aria-hidden="true"></ion-icon>
+        </div>
+        @if (src()) {
+          <audio
+            #media
+            [src]="src()"
+            preload="auto"
+            (loadedmetadata)="onLoadedMetadata()"
+          (durationchange)="onDurationChange()"
+            (timeupdate)="onTimeUpdate()"
+            (play)="onPlay()"
+            (pause)="onPause()"
+            (ended)="onEnded()"
+          ></audio>
+        }
+      }
+    </div>
+
+    <div class="player__meta">
+      <h1>{{ title() }}</h1>
+      @if (folderPath()) {
+        <p>{{ folderPath() }}</p>
+      }
+    </div>
+
+    @switch (status()) {
+      @case ('loading') {
+        <div class="player__status" role="status">
+          @if (loadProgress(); as p) {
+            <ion-progress-bar [value]="p"></ion-progress-bar>
+            <span>Preparing your session… {{ (p * 100).toFixed(0) }}%</span>
+          } @else {
+            <ion-progress-bar type="indeterminate"></ion-progress-bar>
+            <span>Preparing your session…</span>
+          }
+        </div>
+      }
+      @case ('error') {
+        <div class="player__status" role="alert">
+          <ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon>
+          <span>{{ error() }}</span>
+          <ion-button shape="round" fill="outline" class="player__retry" (click)="load()">Try again</ion-button>
+        </div>
+      }
+      @case ('ready') {
+        <div class="player__controls">
+          <ion-range
+            class="player__scrubber"
+            aria-label="Seek"
+            [min]="0"
+            [max]="duration() || 1"
+            [step]="1"
+            [value]="currentTime()"
+            [disabled]="!duration()"
+            (ionKnobMoveStart)="onScrubStart()"
+            (ionInput)="onScrubMove($event)"
+            (ionChange)="onScrubEnd($event)"
+          ></ion-range>
+          <div class="player__times">
+            <span>{{ elapsedLabel() }}</span>
+            <span>{{ duration() ? remainingLabel() : '' }}</span>
+          </div>
+
+          <div class="player__transport">
+            <button type="button" class="player__skip" (click)="skip(-skipSec)" [attr.aria-label]="'Back ' + skipSec + ' seconds'">
+              <span class="player__skip-arrow" aria-hidden="true">↺</span><span>{{ skipSec }}</span>
+            </button>
+            <button type="button" class="player__play" (click)="toggle()" [attr.aria-label]="playing() ? 'Pause' : 'Play'">
+              <ion-icon [name]="playing() ? 'pause' : 'play'" aria-hidden="true"></ion-icon>
+            </button>
+            <button type="button" class="player__skip" (click)="skip(skipSec)" [attr.aria-label]="'Forward ' + skipSec + ' seconds'">
+              <span class="player__skip-arrow" aria-hidden="true">↻</span><span>{{ skipSec }}</span>
+            </button>
+          </div>
+
+          @if (resumedFrom(); as at) {
+            <p class="player__resumed">
+              Picked up at {{ formatClock(at) }} ·
+              <button type="button" (click)="startOver()">Start over</button>
+            </p>
+          }
+        </div>
+      }
+    }
+  </div>
+</ion-content>

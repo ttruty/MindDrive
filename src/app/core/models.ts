@@ -27,6 +27,26 @@ export interface DownloadedMedia {
   lastPositionSec?: number;
 }
 
+/**
+ * playback store — resume position + "recently played" for every session, streamed or downloaded.
+ * This (not DownloadedMedia.lastPositionSec) is the source of truth for resume.
+ */
+export interface PlaybackEntry {
+  driveId: string;
+  name: string;
+  mimeType: string;
+  /** Folder the session lives in, so "Continue listening" can link back to it. */
+  parentId: string | null;
+  /** Human-readable breadcrumb, e.g. "Sleep / Deep Rest". */
+  folderPath: string;
+  positionSec: number;
+  durationSec?: number;
+  /** True once the session played to the end; the next play starts over. */
+  completed: boolean;
+  /** ISO timestamp of the last position write. */
+  updatedAt: string;
+}
+
 /** streakLog store — one entry per local calendar day with any playback (Phase 5). */
 export interface StreakEntry {
   date: string;
