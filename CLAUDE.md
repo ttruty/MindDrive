@@ -97,8 +97,8 @@ expose raw Drive chrome (file icons, "My Drive," etc.).
 | Phase | Scope | Status |
 |---|---|---|
 | 0 | Ionic Angular PWA scaffold, routing, tab shell, theme, this CLAUDE.md | ✅ Done |
-| 1 | Google OAuth (GIS) + Drive service: sign-in/out, token handling, root-folder picker, `files.list` folder-tree walk, `driveCache` store | ⏳ Next |
-| 2 | Explore UI: category cards from top-level folders, drill-down, session list, breadcrumbs | |
+| 1 | Google OAuth (GIS) + Drive service: sign-in/out, token handling, root-folder picker, `files.list` folder-tree walk, `driveCache` store | ✅ Done |
+| 2 | Explore UI: category cards from top-level folders, drill-down, session list, breadcrumbs | ⏳ Next |
 | 3 | Player: audio/video playback (authenticated blob fetch), custom controls, resume position | |
 | 4 | Downloads: store blobs in `mediaBlobs`, prefer local blob over network, Downloads tab UI, storage usage + delete | |
 | 5 | Streak: `streakLog` writes on playback start, streak calc, home heatmap, "Continue listening" | |
@@ -113,7 +113,8 @@ expose raw Drive chrome (file icons, "My Drive," etc.).
 - **Layout**
   - `src/app/tabs/` — tab shell (`tabs.page.*`) and child routes (`tabs.routes.ts`): `/tabs/home|explore|downloads|settings`
   - `src/app/pages/<name>/` — one folder per tab page (standalone, `IonXxx` imports from `@ionic/angular`)
-  - Future: `src/app/core/` for services (auth, drive, db, player, streak), `src/app/shared/` for reusable components
+  - `src/app/core/` — services and models (see §8); future player/streak services go here too
+  - Future: `src/app/shared/` for reusable components
 - **Theme**: `src/theme/variables.scss` defines the Ionic color palette + surfaces for light and dark
   (`prefers-color-scheme`). Dark overrides use `:root, :root.ios, :root.md` to beat Ionic's
   `dark.system.css` specificity. App-specific tokens are `--md-*` (surface, radius, shadow, orb gradient) —
@@ -122,3 +123,38 @@ expose raw Drive chrome (file icons, "My Drive," etc.).
 - **PWA**: `public/manifest.webmanifest` + `public/icons/*` (placeholder Angular icons until Phase 6),
   `ngsw-config.json` (app shell prefetch, assets lazy). Drive media must **never** go through ngsw
   caching — offline media lives in IndexedDB (`mediaBlobs`).
+
+## 8. Core services (Phase 1, as built)
+
+All in `src/app/core/`, `providedIn: 'root'`, state exposed as read-only signals.
+
+- **`models.ts`** — `DriveNode`, `DownloadedMedia`, `StreakEntry`, `FOLDER_MIME`, `isPlayableMime()`.
+- **`db.service.ts`** — single `idb` connection to DB `minddrive` v1. Creates all three stores up front:
+  `driveCache` (keyPath `id`, index `parentId`), `mediaBlobs` (keyPath `driveId`), `streakLog` (keyPath `date`).
+  Bump `DB_VERSION` and add an upgrade step for any schema change.
+- **`google-auth.service.ts`** — GIS token client, loads `accounts.google.com/gsi/client` lazily.
+  - `status`: `unconfigured` (no client ID) → `initializing` → `signed-out` | `reconnect` | `signed-in`.
+  - Token is in memory only. localStorage keeps `md.auth.consented` + `md.auth.hint` (email, used as `login_hint`).
+  - On startup `init()` tries a silent `prompt: 'none'` request. Browsers usually block that popup without a
+    user gesture, so the common result after a reload is `reconnect` ("Welcome back — tap to reconnect").
+    That's expected, not a bug.
+  - `getAccessToken()` refreshes near expiry; if the refresh fails it drops to `reconnect` and throws
+    `AuthRequiredError`. `signIn()` must be called straight from a click handler (popup blocking).
+  - `user` signal comes from Drive `about.get` (works with `drive.readonly`; no extra scopes).
+- **`drive-api.service.ts`** — authenticated `fetch` for Drive v3: `getFile(id)`, `listChildren(parentId,
+  { foldersOnly })` (paginates, `orderBy: folder,name_natural`, shared-drive flags on). Retries once on 401
+  (after invalidating the token) and backs off on 429 / 5xx / 403 rate-limit reasons. Throws `DriveApiError`.
+- **`drive-url.ts`** — `parseFolderId()` for pasted links (`/folders/<id>`, `/u/N/folders/<id>`, `open?id=`) or bare IDs.
+- **`library.service.ts`** — library root + tree cache.
+  - Root `{id, name}` in localStorage `md.library.root`; last-sync summary in `md.library.lastSync`.
+  - `sync()` walks the tree breadth-first (4 `files.list` calls in parallel), keeps folders + audio/video only,
+    then replaces `driveCache` in one transaction. The root node itself is stored with `parentId: null`.
+    Concurrent calls share one run; failures go to `syncError` and leave the previous cache intact.
+  - `syncIfStale()` (older than 12h) runs on startup and after connecting. Settings has a manual sync button.
+  - Read API for Phase 2: `getNode(id)`, `getChildren(parentId)` (folders first, natural name sort).
+  - Empty folders (no playable descendants) **are** cached. Phase 2 decides whether to hide them.
+- **Settings** (`pages/settings/`): connect/reconnect/disconnect, library folder via pasted link or the
+  `FolderPickerComponent` modal (browses the user's own Drive from `root`; shared folders are set by pasting a link),
+  sync status/progress, clear library cache. "Clear downloads" is a placeholder until Phase 4.
+- **Tests**: `fake-indexeddb/auto` is loaded in `src/test-setup.ts`; `library.service.spec.ts` shows the pattern
+  (fake `DriveApiService` + real `DbService`, `deleteDB` between tests).

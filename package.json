@@ -20,6 +20,7 @@
     "@angular/router": "22.1.7",
     "@angular/service-worker": "22.1.7",
     "@ionic/angular": "^9.0.0",
+    "idb": "^8.0.3",
     "ionicons": "^8.1.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
@@ -30,8 +31,10 @@
     "@angular/compiler-cli": "22.1.7",
     "@angular/language-service": "22.1.7",
     "@ionic/angular-toolkit": "^13.0.0",
+    "@types/google.accounts": "^0.0.18",
     "angular-eslint": "22.0.0",
     "eslint": "^10.10.0",
+    "fake-indexeddb": "^6.2.5",
     "jsdom": "^26.0.0",
     "typescript": "~6.0.0",
     "typescript-eslint": "^8.61.0",

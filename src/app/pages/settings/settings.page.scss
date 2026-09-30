@@ -1,0 +1,81 @@
+ion-list-header {
+  padding-top: 16px;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ion-color-medium);
+}
+
+.md-card {
+  margin: 0 16px;
+  padding: 16px;
+  border-radius: var(--md-radius-lg);
+  background: var(--md-surface);
+  box-shadow: var(--md-shadow);
+
+  p {
+    margin: 0 0 12px;
+    line-height: 1.45;
+  }
+}
+
+.md-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.md-grow {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.md-muted {
+  color: var(--ion-color-medium);
+}
+
+.md-small {
+  font-size: 0.85rem;
+}
+
+.md-error {
+  margin: 12px 0 0 !important;
+  color: var(--ion-color-danger);
+  font-size: 0.9rem;
+}
+
+.md-input {
+  margin-top: 16px;
+  --border-radius: var(--md-radius-md);
+}
+
+.md-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.md-divider {
+  height: 1px;
+  margin: 16px 0;
+  background: var(--md-surface-muted);
+}
+
+.md-avatar-fallback {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  background: var(--md-orb-gradient);
+  color: #fff;
+  font-size: 20px;
+}
+
+.md-list {
+  margin: 0 16px;
+  border-radius: var(--md-radius-lg);
+  box-shadow: var(--md-shadow);
+  --ion-item-background: var(--md-surface);
+}

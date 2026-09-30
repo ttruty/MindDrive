@@ -1,0 +1,21 @@
+.picker-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 32px;
+  text-align: center;
+  color: var(--ion-color-medium);
+}
+
+ion-item {
+  --border-radius: var(--md-radius-md);
+  --background: var(--md-surface);
+  margin-bottom: 8px;
+}
+
+.picker-hint {
+  margin: 12px 0;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--ion-color-medium);
+}

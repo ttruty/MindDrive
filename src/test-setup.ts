@@ -14,3 +14,6 @@ if (!window.matchMedia) {
       dispatchEvent: () => false,
     }) as MediaQueryList;
 }
+
+// In-memory IndexedDB so services using `idb` can be exercised under jsdom.
+import 'fake-indexeddb/auto';

@@ -60,6 +60,12 @@ ion-tab-button {
   font-weight: 600;
 }
 
+ion-button {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 600;
+}
+
 ion-card {
   border-radius: var(--md-radius-lg);
   box-shadow: var(--md-shadow);

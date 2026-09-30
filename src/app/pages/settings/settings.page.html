@@ -11,11 +11,128 @@
     </ion-toolbar>
   </ion-header>
 
-  <section class="md-placeholder">
-    <div class="md-placeholder__orb">
-      <ion-icon name="options-outline" aria-hidden="true"></ion-icon>
-    </div>
-    <h2>Make it yours</h2>
-    <p>Google Drive connection and library setup arrive in Phase 1.</p>
+  <!-- Google Drive connection -->
+  <ion-list-header>Google Drive</ion-list-header>
+  <section class="md-card">
+    @switch (auth.status()) {
+      @case ('unconfigured') {
+        <p class="md-muted">
+          Google sign-in isn't configured. Add your OAuth client ID to
+          <code>src/environments/environment.ts</code>.
+        </p>
+      }
+      @case ('initializing') {
+        <div class="md-row"><ion-spinner name="crescent"></ion-spinner><span class="md-muted">Checking connection…</span></div>
+      }
+      @case ('signed-in') {
+        <div class="md-row">
+          <ion-avatar>
+            @if (auth.user()?.photoLink; as photo) {
+              <img [src]="photo" alt="" referrerpolicy="no-referrer" />
+            } @else {
+              <div class="md-avatar-fallback"><ion-icon name="cloud-outline"></ion-icon></div>
+            }
+          </ion-avatar>
+          <div class="md-grow">
+            <strong>{{ auth.user()?.displayName ?? 'Connected' }}</strong>
+            <div class="md-muted">{{ auth.user()?.emailAddress ?? 'Google Drive' }}</div>
+          </div>
+          <ion-button fill="clear" color="medium" (click)="confirmDisconnect()">Disconnect</ion-button>
+        </div>
+      }
+      @default {
+        <p class="md-muted">
+          @if (auth.status() === 'reconnect') {
+            Welcome back — tap to reconnect to your library.
+          } @else {
+            Connect the Google Drive that holds your meditations. MindDrive only ever reads your files.
+          }
+        </p>
+        <ion-button expand="block" shape="round" (click)="connect()">
+          <ion-icon slot="start" name="logo-google"></ion-icon>
+          {{ auth.status() === 'reconnect' ? 'Reconnect' : 'Connect Google Drive' }}
+        </ion-button>
+      }
+    }
+    @if (auth.error(); as message) {
+      <p class="md-error">{{ message }}</p>
+    }
   </section>
+
+  <!-- Library root + sync -->
+  <ion-list-header>Library</ion-list-header>
+  <section class="md-card">
+    <div class="md-row">
+      <div class="md-grow">
+        <div class="md-muted md-small">Library folder</div>
+        <strong>{{ library.root()?.name ?? 'Not set yet' }}</strong>
+      </div>
+    </div>
+
+    @if (auth.isSignedIn()) {
+      <ion-input
+        class="md-input"
+        fill="outline"
+        placeholder="Paste a Drive folder link or ID"
+        [value]="folderInput()"
+        (ionInput)="folderInput.set($any($event).detail.value ?? '')"
+        (keyup.enter)="useFolderLink()"
+        [disabled]="settingRoot()"
+      ></ion-input>
+      <div class="md-actions">
+        <ion-button shape="round" [disabled]="!folderInput().trim() || settingRoot()" (click)="useFolderLink()">
+          Use this folder
+        </ion-button>
+        <ion-button shape="round" fill="outline" [disabled]="settingRoot()" (click)="browse()">
+          <ion-icon slot="start" name="folder-open-outline"></ion-icon>
+          Browse
+        </ion-button>
+      </div>
+    } @else {
+      <p class="md-muted md-small">Connect Google Drive to choose or change your library folder.</p>
+    }
+    @if (rootError(); as message) {
+      <p class="md-error">{{ message }}</p>
+    }
+
+    @if (library.root()) {
+      <div class="md-divider"></div>
+      <div class="md-row">
+        <div class="md-grow">
+          @if (library.progress(); as p) {
+            <strong>Syncing…</strong>
+            <div class="md-muted md-small">{{ p.folders }} categories · {{ p.sessions }} sessions found</div>
+          } @else if (library.lastSync(); as s) {
+            <strong>{{ s.folders }} categories · {{ s.sessions }} sessions</strong>
+            <div class="md-muted md-small">Synced {{ s.syncedAt | date: 'MMM d, h:mm a' }}</div>
+          } @else {
+            <strong>Not synced yet</strong>
+          }
+        </div>
+        @if (library.progress()) {
+          <ion-spinner name="crescent"></ion-spinner>
+        } @else {
+          <ion-button fill="clear" [disabled]="!auth.isSignedIn()" (click)="sync()" aria-label="Sync library">
+            <ion-icon slot="icon-only" name="refresh"></ion-icon>
+          </ion-button>
+        }
+      </div>
+      @if (library.syncError(); as message) {
+        <p class="md-error">Sync failed: {{ message }}</p>
+      }
+    }
+  </section>
+
+  <!-- Storage -->
+  <ion-list-header>Storage</ion-list-header>
+  <ion-list inset lines="none" class="md-list">
+    <ion-item button detail="false" (click)="confirmClearCache()">
+      <ion-icon slot="start" name="trash-outline" color="medium" aria-hidden="true"></ion-icon>
+      <ion-label>Clear library cache</ion-label>
+    </ion-item>
+    <ion-item>
+      <ion-label color="medium">Clear downloads</ion-label>
+      <ion-note slot="end">Coming with downloads</ion-note>
+    </ion-item>
+  </ion-list>
 </ion-content>

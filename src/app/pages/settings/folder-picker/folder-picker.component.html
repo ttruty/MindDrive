@@ -1,0 +1,47 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      @if (atTop()) {
+        <ion-button (click)="cancel()">Cancel</ion-button>
+      } @else {
+        <ion-button (click)="back()" aria-label="Back">
+          <ion-icon slot="icon-only" name="chevron-back"></ion-icon>
+        </ion-button>
+      }
+    </ion-buttons>
+    <ion-title>{{ current().name }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  @if (loading()) {
+    <div class="picker-state"><ion-spinner name="crescent"></ion-spinner></div>
+  } @else if (error(); as message) {
+    <div class="picker-state">
+      <p>{{ message }}</p>
+      <ion-button fill="clear" (click)="load()">Try again</ion-button>
+    </div>
+  } @else if (folders().length === 0) {
+    <div class="picker-state"><p>No folders in here.</p></div>
+  } @else {
+    <ion-list lines="none" class="ion-padding-horizontal">
+      @for (folder of folders(); track folder.id) {
+        <ion-item button detail="false" (click)="open(folder)">
+          <ion-icon slot="start" name="folder-open-outline" color="primary" aria-hidden="true"></ion-icon>
+          <ion-label>{{ folder.name }}</ion-label>
+          <ion-icon slot="end" name="chevron-forward" color="medium" aria-hidden="true"></ion-icon>
+        </ion-item>
+      }
+    </ion-list>
+  }
+</ion-content>
+
+<ion-footer>
+  <ion-toolbar class="ion-padding-horizontal">
+    @if (atTop()) {
+      <p class="picker-hint">Open the folder that holds your sessions, then choose it.</p>
+    } @else {
+      <ion-button expand="block" shape="round" (click)="choose()">Use “{{ current().name }}”</ion-button>
+    }
+  </ion-toolbar>
+</ion-footer>
