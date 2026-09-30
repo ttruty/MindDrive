@@ -16,7 +16,7 @@ export interface DriveNode {
   sessionCount?: number;
 }
 
-/** mediaBlobs store — downloaded content (written in Phase 4). */
+/** mediaBlobs store — downloaded content, written by DownloadsService. */
 export interface DownloadedMedia {
   driveId: string;
   name: string;
@@ -24,7 +24,13 @@ export interface DownloadedMedia {
   mimeType: string;
   blob: Blob;
   downloadedAt: string;
+  /** Unused — resume lives in the playback store. Kept for spec compatibility. */
   lastPositionSec?: number;
+  /** Folder the session lives in, so a download can still be placed if the library cache is cleared. */
+  parentId?: string | null;
+  durationMs?: number;
+  /** blob.size at download time (cheap to read without touching the blob). */
+  sizeBytes?: number;
 }
 
 /**

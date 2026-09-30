@@ -50,6 +50,7 @@ import { MediaSourceService, ResolvedMedia } from '../core/media-source.service'
 import { DriveNode } from '../core/models';
 import { PlaybackService } from '../core/playback.service';
 import { CategoryAppearance, displayName, formatClock } from '../shared/display';
+import { DownloadButtonComponent } from '../shared/download-button/download-button.component';
 
 /** Seconds jumped by the skip buttons and lock-screen seek actions. */
 const SKIP_SEC = 15;
@@ -63,7 +64,7 @@ type Status = 'loading' | 'ready' | 'error';
   selector: 'app-player',
   templateUrl: 'player.component.html',
   styleUrls: ['player.component.scss'],
-  imports: [IonContent, IonButton, IonIcon, IonRange, IonProgressBar],
+  imports: [IonContent, IonButton, IonIcon, IonRange, IonProgressBar, DownloadButtonComponent],
 })
 export class PlayerComponent implements OnInit, OnDestroy {
   readonly node = input.required<DriveNode>();
@@ -156,13 +157,7 @@ export class PlayerComponent implements OnInit, OnDestroy {
       this.status.set('ready');
     } catch (err) {
       if (abort.signal.aborted) return;
-      this.error.set(
-        err instanceof AuthRequiredError
-          ? 'Reconnect Google Drive in Settings to play this session.'
-          : err instanceof Error
-            ? err.message
-            : String(err),
-      );
+      this.error.set(describeLoadError(err));
       this.status.set('error');
     }
   }
@@ -326,6 +321,15 @@ export class PlayerComponent implements OnInit, OnDestroy {
     }
     if (this.el) updatePositionState(this.el);
   }
+}
+
+function describeLoadError(err: unknown): string {
+  if (err instanceof AuthRequiredError) return 'Reconnect Google Drive in Settings to play this session.';
+  // fetch() rejects with a TypeError when there's no network.
+  if (!navigator.onLine || err instanceof TypeError) {
+    return "You're offline. Download sessions ahead of time to listen without a connection.";
+  }
+  return err instanceof Error ? err.message : String(err);
 }
 
 function setPlaybackState(state: MediaSessionPlaybackState): void {

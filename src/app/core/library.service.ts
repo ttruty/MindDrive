@@ -135,9 +135,14 @@ export class LibraryService {
     this._revision.update((r) => r + 1);
   }
 
-  /** Drive IDs of sessions saved for offline playback. */
-  async getDownloadedIds(): Promise<Set<string>> {
-    return new Set(await (await this.db.db).getAllKeys('mediaBlobs'));
+  /** Every session anywhere beneath a folder, in browse order (depth-first). */
+  async getDescendantSessions(folderId: string): Promise<DriveNode[]> {
+    const out: DriveNode[] = [];
+    for (const child of await this.getChildren(folderId)) {
+      if (child.isFolder) out.push(...(await this.getDescendantSessions(child.id)));
+      else out.push(child);
+    }
+    return out;
   }
 
   /** Forget the cached tree (the root folder setting is kept). */

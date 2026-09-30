@@ -32,8 +32,11 @@
   margin: 0;
 }
 
-.player__spacer {
-  width: 48px;
+.player__top-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 48px;
 }
 
 .player__eyebrow {

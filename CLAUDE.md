@@ -50,6 +50,9 @@ interface DownloadedMedia {
   blob: Blob;
   downloadedAt: string;  // ISO date
   lastPositionSec?: number; // unused — resume lives in the playback store (below)
+  parentId?: string | null; // added Phase 4
+  durationMs?: number;      // added Phase 4
+  sizeBytes?: number;       // added Phase 4 — blob.size at download time
 }
 
 // playback store (DB v2) — resume position + recently played, for streamed AND downloaded sessions
@@ -114,8 +117,8 @@ expose raw Drive chrome (file icons, "My Drive," etc.).
 | 1 | Google OAuth (GIS) + Drive service: sign-in/out, token handling, root-folder picker, `files.list` folder-tree walk, `driveCache` store | ✅ Done |
 | 2 | Explore UI: category cards from top-level folders, drill-down, session list, breadcrumbs | ✅ Done |
 | 3 | Player: audio/video playback (authenticated blob fetch), custom controls, resume position | ✅ Done |
-| 4 | Downloads: store blobs in `mediaBlobs`, prefer local blob over network, Downloads tab UI, storage usage + delete | ⏳ Next |
-| 5 | Streak: `streakLog` writes on playback start, streak calc, home heatmap, "Continue listening" | |
+| 4 | Downloads: store blobs in `mediaBlobs`, prefer local blob over network, Downloads tab UI, storage usage + delete | ✅ Done |
+| 5 | Streak: `streakLog` writes on playback start, streak calc, home heatmap, "Continue listening" | ⏳ Next |
 | 6 | Polish: real icons/manifest branding, SW caching strategy, empty/loading/error states, responsive pass | |
 
 ## 7. Repo conventions (as built)
@@ -177,7 +180,7 @@ All in `src/app/core/`, `providedIn: 'root'`, state exposed as read-only signals
   - `setDuration(id, ms)` records a duration learned during playback. Sync carries learned durations over
     for files whose `modifiedTime` hasn't changed.
   - `getTrail(id)` returns the folders from just below the root down to `id` (for breadcrumbs).
-    `getDownloadedIds()` returns the keys in `mediaBlobs` (for "Downloaded" badges).
+    `getDescendantSessions(folderId)` returns every session beneath a folder, depth-first (for "Download all").
 - **Settings** (`pages/settings/`): connect/reconnect/disconnect, library folder via pasted link or the
   `FolderPickerComponent` modal (browses the user's own Drive from `root`; shared folders are set by pasting a link),
   sync status/progress, clear library cache. "Clear downloads" is a placeholder until Phase 4.
@@ -198,8 +201,9 @@ All in `src/app/core/`, `providedIn: 'root'`, state exposed as read-only signals
   reload automatically when a sync finishes.
 - **`shared/category-card`**: gradient tile that links to `/tabs/explore/<id>`. Every icon
   `categoryAppearance()` can return must be registered in its `addIcons` call.
-- **`shared/session-list`**: rows showing play button, cleaned title, "Audio"/"Video · 12 min" and a
-  Downloaded badge. Emits `(sessionSelect)` with the `DriveNode`.
+- **`shared/session-list`**: rows with a play button, cleaned title, "Audio"/"Video · 12 min" and a trailing
+  `app-download-button`. Emits `(sessionSelect)` with the `DriveNode`. Rows are plain `<button>`s, not
+  `ion-item button`, so the download button isn't nested inside another button.
 - **`shared/display.ts`**:
   - `displayName()` strips the file extension, leading track numbers like "01 - ", and underscores. Never
     show raw Drive names in the UI.
@@ -241,5 +245,41 @@ All in `src/app/core/`, `providedIn: 'root'`, state exposed as read-only signals
   - Media Session API provides lock-screen / headset metadata and play/pause/seek actions, cleared on close.
   - Closing the player stops playback. There's no mini-player / background playback yet; candidate for Phase 6.
   - **Phase 5 hook:** `onPlay()` has a comment marking where to record today's `streakLog` entry.
-  - **Phase 4 hook:** the player has no download toggle yet. Add it to the top bar.
+  - Top bar has `app-download-button variant="light"`. Playback errors from `TypeError` / `!navigator.onLine`
+    show "You're offline. Download sessions ahead of time…".
 - Component style budget raised to 6 kB warn / 10 kB error (`angular.json`) for the player stylesheet.
+
+## 11. Downloads (Phase 4, as built)
+
+- **`core/downloads.service.ts`** is the single source of truth for downloads.
+  - Signals:
+    - `ids` — Drive IDs with a stored copy.
+    - `active` / `activeList` — queued and in-flight downloads, with `progress` from 0–1, or null while queued.
+    - `revision` — bumps on any `mediaBlobs` change.
+    - `lastError` — failures only; cancellations aren't reported.
+  - Actions: `download(node)`, `downloadAll(nodes)` (skips ones already stored or queued, returns how many
+    were added), `cancel(id)`, `remove(id)`, `removeAll()`, `list()` (sorted by folder path, then title),
+    `storageInfo()` (download bytes plus `navigator.storage.estimate()` / `persisted()`).
+  - Queue runs 2 downloads at a time. If `MediaSourceService.peekStreamed(id)` still holds a just-played
+    file, it's saved from memory with no second fetch.
+  - Each record stores `folderPath`, `parentId`, `durationMs`, `sizeBytes`.
+  - Calls `navigator.storage.persist()` once per session after the first successful download.
+  - Error messages: `AuthRequiredError` → reconnect; `QuotaExceededError` → out of space; network → check connection.
+- **`AppComponent`** shows `downloads.lastError` as a toast, since downloads run in the background.
+- **`shared/download-button`** is the per-session toggle: download icon → progress ring (tap = cancel) →
+  checkmark (tap = confirm, then remove). `variant="light"` is for the player. Clicks don't propagate.
+- **Category page** hero pill: "Download all" (confirm shows count and approximate size from `sizeBytes`),
+  then "Downloading · N left", then "Available offline". It covers every session beneath the category,
+  including sub-collections.
+- **Downloads tab** (`pages/downloads/`):
+  - In-progress list with a cancel button for each.
+  - Storage card: count, size, a device usage bar, and a warning when storage isn't persisted.
+  - Downloads grouped by `folderPath`; tapping plays them. The player gets the cached node, or one built from
+    the download if the cache no longer has it (`PlayerLauncher.open(node, fallbackFolderPath)`).
+  - A trash button per item, and "Remove all" with a confirm.
+  - Empty state links to Explore.
+- **Settings**: "Clear downloads" shows the session count and asks to confirm.
+- Playing offline: `MediaSourceService` already prefers `mediaBlobs`. The last streamed file also stays in
+  memory, so it keeps playing offline until the app reloads.
+- Layering note: `DownloadsService` imports `displayName` from `shared/display.ts`, a pure helper and the only
+  core → shared import.

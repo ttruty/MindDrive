@@ -1,5 +1,6 @@
 import { Component, computed, inject, input, resource } from '@angular/core';
 import {
+  AlertController,
   IonBackButton,
   IonButton,
   IonButtons,
@@ -15,13 +16,25 @@ import {
   RefresherCustomEvent,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { chevronForward, cloudOfflineOutline, searchOutline } from 'ionicons/icons';
+import {
+  checkmarkCircle,
+  chevronForward,
+  cloudDownloadOutline,
+  cloudOfflineOutline,
+  searchOutline,
+} from 'ionicons/icons';
+import { DownloadsService } from '../../core/downloads.service';
 import { GoogleAuthService } from '../../core/google-auth.service';
 import { LibraryService } from '../../core/library.service';
 import { DriveNode } from '../../core/models';
 import { PlayerLauncher } from '../../player/player-launcher.service';
 import { CategoryCardComponent } from '../../shared/category-card/category-card.component';
-import { categoryAppearance, displayName, sessionCountLabel } from '../../shared/display';
+import {
+  categoryAppearance,
+  displayName,
+  formatBytes,
+  sessionCountLabel,
+} from '../../shared/display';
 import { SessionListComponent } from '../../shared/session-list/session-list.component';
 
 interface Crumb {
@@ -55,6 +68,8 @@ export class CategoryPage {
   readonly library = inject(LibraryService);
   private readonly nav = inject(NavController);
   private readonly player = inject(PlayerLauncher);
+  private readonly alertCtrl = inject(AlertController);
+  readonly downloads = inject(DownloadsService);
 
   /** Bound from the `:folderId` route param. */
   readonly folderId = input.required<string>();
@@ -62,11 +77,11 @@ export class CategoryPage {
   readonly contents = resource({
     params: () => ({ id: this.folderId(), revision: this.library.revision() }),
     loader: async ({ params }) => {
-      const [node, trail, children, downloaded] = await Promise.all([
+      const [node, trail, children, allSessions] = await Promise.all([
         this.library.getNode(params.id),
         this.library.getTrail(params.id),
         this.library.getChildren(params.id),
-        this.library.getDownloadedIds(),
+        this.library.getDescendantSessions(params.id),
       ]);
       if (!node?.isFolder) return null;
       return {
@@ -74,7 +89,7 @@ export class CategoryPage {
         crumbs: toCrumbs(trail.slice(0, -1)),
         categories: children.filter((n) => n.isFolder),
         sessions: children.filter((n) => !n.isFolder),
-        downloaded,
+        allSessions,
       };
     },
   });
@@ -91,8 +106,35 @@ export class CategoryPage {
     return node ? categoryAppearance(node) : null;
   });
 
+  /** Sessions anywhere in this category that aren't stored yet (and aren't on their way). */
+  readonly notDownloaded = computed(() => {
+    const ids = this.downloads.ids();
+    const active = this.downloads.active();
+    return (this.contents.value()?.allSessions ?? []).filter((n) => !ids.has(n.id) && !active.has(n.id));
+  });
+  readonly downloadingCount = computed(() => {
+    const active = this.downloads.active();
+    return (this.contents.value()?.allSessions ?? []).filter((n) => active.has(n.id)).length;
+  });
+
   constructor() {
-    addIcons({ chevronForward, cloudOfflineOutline, searchOutline });
+    addIcons({ checkmarkCircle, chevronForward, cloudDownloadOutline, cloudOfflineOutline, searchOutline });
+  }
+
+  async confirmDownloadAll(): Promise<void> {
+    const pending = this.notDownloaded();
+    if (!pending.length) return;
+    const bytes = pending.reduce((sum, n) => sum + (n.sizeBytes ?? 0), 0);
+    const count = sessionCountLabel(pending.length);
+    const alert = await this.alertCtrl.create({
+      header: `Download ${this.title()}?`,
+      message: bytes ? `${count} · about ${formatBytes(bytes)}` : count,
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        { text: 'Download', handler: () => void this.downloads.downloadAll(pending) },
+      ],
+    });
+    await alert.present();
   }
 
   goTo(crumb: Crumb): void {

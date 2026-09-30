@@ -20,7 +20,15 @@ import {
   ToastController,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { cloudOutline, folderOpenOutline, logoGoogle, refresh, trashOutline } from 'ionicons/icons';
+import {
+  cloudOfflineOutline,
+  cloudOutline,
+  folderOpenOutline,
+  logoGoogle,
+  refresh,
+  trashOutline,
+} from 'ionicons/icons';
+import { DownloadsService } from '../../core/downloads.service';
 import { GoogleAuthService } from '../../core/google-auth.service';
 import { LibraryService, RootFolder } from '../../core/library.service';
 import { FolderPickerComponent } from './folder-picker/folder-picker.component';
@@ -50,6 +58,7 @@ import { FolderPickerComponent } from './folder-picker/folder-picker.component';
 export class SettingsPage {
   readonly auth = inject(GoogleAuthService);
   readonly library = inject(LibraryService);
+  readonly downloads = inject(DownloadsService);
   private readonly modalCtrl = inject(ModalController);
   private readonly alertCtrl = inject(AlertController);
   private readonly toastCtrl = inject(ToastController);
@@ -59,7 +68,7 @@ export class SettingsPage {
   readonly settingRoot = signal(false);
 
   constructor() {
-    addIcons({ cloudOutline, folderOpenOutline, logoGoogle, refresh, trashOutline });
+    addIcons({ cloudOfflineOutline, cloudOutline, folderOpenOutline, logoGoogle, refresh, trashOutline });
   }
 
   async connect(): Promise<void> {
@@ -106,6 +115,25 @@ export class SettingsPage {
           handler: async () => {
             await this.library.clearCache();
             await this.toast('Library cache cleared');
+          },
+        },
+      ],
+    });
+    await alert.present();
+  }
+
+  async confirmClearDownloads(): Promise<void> {
+    const alert = await this.alertCtrl.create({
+      header: 'Clear all downloads?',
+      message: 'Sessions will need a connection to play until you download them again.',
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        {
+          text: 'Clear',
+          role: 'destructive',
+          handler: async () => {
+            await this.downloads.removeAll();
+            await this.toast('Downloads cleared');
           },
         },
       ],

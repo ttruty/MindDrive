@@ -11,11 +11,75 @@
     </ion-toolbar>
   </ion-header>
 
-  <section class="md-placeholder">
-    <div class="md-placeholder__orb">
-      <ion-icon name="cloud-download-outline" aria-hidden="true"></ion-icon>
-    </div>
-    <h2>Listen anywhere</h2>
-    <p>Offline sessions you save will live here (Phase 4).</p>
-  </section>
+  @if (downloads.activeList().length) {
+    <h2 class="md-section-title">Downloading</h2>
+    <ul class="md-section dl-list">
+      @for (a of downloads.activeList(); track a.id) {
+        <li class="dl-row dl-row--active">
+          <div class="dl-row__text">
+            <span class="dl-row__title">{{ a.name }}</span>
+            @if (a.progress === null) {
+              <ion-progress-bar type="indeterminate"></ion-progress-bar>
+            } @else {
+              <ion-progress-bar [value]="a.progress"></ion-progress-bar>
+            }
+          </div>
+          <ion-button fill="clear" color="medium" (click)="downloads.cancel(a.id)" [attr.aria-label]="'Cancel ' + a.name">
+            <ion-icon slot="icon-only" name="close"></ion-icon>
+          </ion-button>
+        </li>
+      }
+    </ul>
+  }
+
+  @if (contents.value(); as c) {
+    @if (c.count) {
+      <section class="md-section storage">
+        <div class="storage__headline">
+          <strong>{{ sessionCountLabel(c.count) }}</strong>
+          <span>{{ formatBytes(c.storage.downloadsBytes) }}</span>
+        </div>
+        @if (usageFraction() !== null) {
+          <ion-progress-bar class="storage__bar" [value]="usageFraction()"></ion-progress-bar>
+          <p class="storage__note">
+            MindDrive is using {{ formatBytes(c.storage.usageBytes!) }} of {{ formatBytes(c.storage.quotaBytes!) }} available on this device.
+          </p>
+        }
+        @if (c.storage.persisted === false) {
+          <p class="storage__note">Your browser may clear downloads if this device runs low on space.</p>
+        }
+      </section>
+
+      @for (group of c.groups; track group.folderPath) {
+        <h2 class="md-section-title">{{ group.folderPath || 'Your library' }}</h2>
+        <ul class="md-section dl-list">
+          @for (item of group.items; track item.driveId) {
+            <li class="dl-row">
+              <button type="button" class="dl-row__main" (click)="play(item)">
+                <span class="dl-row__play" aria-hidden="true"><ion-icon name="play"></ion-icon></span>
+                <span class="dl-row__text">
+                  <span class="dl-row__title">{{ title(item) }}</span>
+                  <span class="dl-row__meta">{{ meta(item) }}</span>
+                </span>
+              </button>
+              <ion-button fill="clear" color="medium" (click)="remove(item)" [attr.aria-label]="'Remove ' + title(item)">
+                <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+              </ion-button>
+            </li>
+          }
+        </ul>
+      }
+
+      <div class="md-section remove-all">
+        <ion-button fill="clear" color="danger" (click)="confirmRemoveAll()">Remove all downloads</ion-button>
+      </div>
+    } @else if (!downloads.activeList().length) {
+      <section class="md-placeholder">
+        <div class="md-placeholder__orb"><ion-icon name="cloud-download-outline" aria-hidden="true"></ion-icon></div>
+        <h2>Listen anywhere</h2>
+        <p>Tap the download icon on any session, or “Download all” on a category, to keep it on this device for offline listening.</p>
+        <ion-button shape="round" class="md-placeholder__action" routerLink="/tabs/explore">Explore sessions</ion-button>
+      </section>
+    }
+  }
 </ion-content>

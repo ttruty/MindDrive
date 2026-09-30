@@ -122,6 +122,16 @@ describe('LibraryService', () => {
     expect((await service.getNode('rest'))?.durationMs).toBe(420_000);
   });
 
+  it('lists every session beneath a folder, depth-first', async () => {
+    await service.setRootFromInput(ROOT_ID);
+    expect((await service.getDescendantSessions(ROOT_ID)).map((n) => n.id)).toEqual([
+      'rest',
+      'wind',
+      'morning',
+    ]);
+    expect(await service.getDescendantSessions('focus')).toEqual([]);
+  });
+
   it('persists the root across service instances', async () => {
     await service.setRootFromInput(ROOT_ID);
     expect(JSON.parse(localStorage.getItem('md.library.root')!)).toEqual({

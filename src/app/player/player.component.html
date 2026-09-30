@@ -5,13 +5,14 @@
         <ion-icon slot="icon-only" name="chevron-down"></ion-icon>
       </ion-button>
       <span class="player__eyebrow">Now playing</span>
-      @if (isVideo() && status() === 'ready') {
-        <ion-button fill="clear" class="player__icon-btn" (click)="enterFullscreen()" aria-label="Full screen">
-          <ion-icon slot="icon-only" name="expand"></ion-icon>
-        </ion-button>
-      } @else {
-        <span class="player__spacer"></span>
-      }
+      <span class="player__top-actions">
+        @if (isVideo() && status() === 'ready') {
+          <ion-button fill="clear" class="player__icon-btn" (click)="enterFullscreen()" aria-label="Full screen">
+            <ion-icon slot="icon-only" name="expand"></ion-icon>
+          </ion-button>
+        }
+        <app-download-button [node]="node()" variant="light"></app-download-button>
+      </span>
     </header>
 
     <div class="player__stage">

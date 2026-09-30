@@ -25,6 +25,11 @@ export class MediaSourceService {
   /** The most recently streamed file, so closing and reopening the same session is instant. */
   private lastStreamed: { id: string; blob: Blob } | null = null;
 
+  /** The in-memory copy of a session that was just streamed, if any — saves re-downloading it. */
+  peekStreamed(id: string): Blob | null {
+    return this.lastStreamed?.id === id ? this.lastStreamed.blob : null;
+  }
+
   async resolve(
     node: DriveNode,
     opts: { signal?: AbortSignal; onProgress?: (fraction: number) => void } = {},
@@ -50,6 +55,6 @@ function toResolved(blob: Blob, source: ResolvedMedia['source']): ResolvedMedia 
 }
 
 /** Drive sometimes serves a generic Content-Type; media elements need the real one. */
-function withMimeType(blob: Blob, mimeType: string): Blob {
+export function withMimeType(blob: Blob, mimeType: string): Blob {
   return blob.type === mimeType ? blob : new Blob([blob], { type: mimeType });
 }

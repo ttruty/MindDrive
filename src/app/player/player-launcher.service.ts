@@ -12,16 +12,21 @@ export class PlayerLauncher {
   private readonly library = inject(LibraryService);
   private current?: HTMLIonModalElement;
 
-  async open(session: DriveNode): Promise<void> {
+  /**
+   * @param fallbackFolderPath used when the session isn't in the library cache (e.g. a download
+   *   whose folder was since cleared or moved).
+   */
+  async open(session: DriveNode, fallbackFolderPath = ''): Promise<void> {
     const folders = (await this.library.getTrail(session.id)).filter((n) => n.isFolder);
     const category = folders[folders.length - 1];
+    const folderPath = folders.length ? folders.map((f) => displayName(f)).join(' / ') : fallbackFolderPath;
 
     await this.current?.dismiss();
     const modal = await this.modalCtrl.create({
       component: PlayerComponent,
       componentProps: {
         node: session,
-        folderPath: folders.map((f) => displayName(f)).join(' / '),
+        folderPath,
         // Match the colour of the category card the session was opened from.
         appearance: categoryAppearance(category ?? session),
       },

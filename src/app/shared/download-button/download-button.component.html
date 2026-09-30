@@ -1,0 +1,13 @@
+<button type="button" class="dl" [attr.aria-label]="label()" [title]="label()" (click)="onClick($event)">
+  @if (active(); as a) {
+    <svg class="dl__ring" [class.dl__ring--waiting]="a.progress === null" viewBox="0 0 36 36" aria-hidden="true">
+      <circle class="dl__track" cx="18" cy="18" r="15" />
+      <circle class="dl__bar" cx="18" cy="18" r="15" [attr.stroke-dashoffset]="a.progress === null ? 70 : ringOffset()" />
+    </svg>
+    <ion-icon class="dl__stop" name="close" aria-hidden="true"></ion-icon>
+  } @else if (downloaded()) {
+    <ion-icon class="dl__done" name="checkmark-circle" aria-hidden="true"></ion-icon>
+  } @else {
+    <ion-icon name="arrow-down-circle-outline" aria-hidden="true"></ion-icon>
+  }
+</button>

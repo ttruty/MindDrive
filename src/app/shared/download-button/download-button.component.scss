@@ -1,0 +1,77 @@
+:host {
+  --dl-color: var(--ion-color-medium);
+  --dl-accent: var(--ion-color-primary);
+  --dl-done: var(--ion-color-secondary);
+  display: inline-block;
+}
+
+:host(.light) {
+  --dl-color: #fff;
+  --dl-accent: #fff;
+  --dl-done: #fff;
+}
+
+.dl {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--dl-color);
+  font-size: 26px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+
+  &:focus-visible {
+    outline: 2px solid var(--dl-accent);
+  }
+}
+
+.dl__done {
+  color: var(--dl-done);
+}
+
+.dl__ring {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  transform: rotate(-90deg);
+
+  circle {
+    fill: none;
+    stroke-width: 3;
+  }
+
+  &--waiting {
+    animation: dl-spin 1.2s linear infinite;
+  }
+}
+
+.dl__track {
+  stroke: color-mix(in srgb, var(--dl-color) 30%, transparent);
+}
+
+.dl__bar {
+  stroke: var(--dl-accent);
+  stroke-dasharray: 94.2;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 200ms linear;
+}
+
+.dl__stop {
+  font-size: 14px;
+  color: var(--dl-accent);
+}
+
+@keyframes dl-spin {
+  from { transform: rotate(-90deg); }
+  to { transform: rotate(270deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dl__ring--waiting { animation: none; }
+}

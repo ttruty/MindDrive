@@ -1,16 +1,15 @@
-<ion-list lines="none">
+<ul class="rows">
   @for (session of sessions(); track session.id) {
-    <ion-item button detail="false" (click)="sessionSelect.emit(session)">
-      <span class="play" slot="start" aria-hidden="true"><ion-icon name="play"></ion-icon></span>
-      <ion-label>
-        <h3>{{ displayName(session) }}</h3>
-        <p>
-          {{ meta(session) }}
-          @if (downloaded().has(session.id)) {
-            <span class="badge"><ion-icon name="checkmark-circle" aria-hidden="true"></ion-icon>Downloaded</span>
-          }
-        </p>
-      </ion-label>
-    </ion-item>
+    <li class="row">
+      <button type="button" class="row__main ion-activatable" (click)="sessionSelect.emit(session)">
+        <span class="row__play" aria-hidden="true"><ion-icon name="play"></ion-icon></span>
+        <span class="row__text">
+          <span class="row__title">{{ displayName(session) }}</span>
+          <span class="row__meta">{{ meta(session) }}</span>
+        </span>
+        <ion-ripple-effect></ion-ripple-effect>
+      </button>
+      <app-download-button [node]="session"></app-download-button>
+    </li>
   }
-</ion-list>
+</ul>

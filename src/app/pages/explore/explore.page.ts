@@ -54,14 +54,10 @@ export class ExplorePage {
       return root && synced ? { rootId: root.id, synced, revision } : undefined;
     },
     loader: async ({ params }) => {
-      const [children, downloaded] = await Promise.all([
-        this.library.getChildren(params.rootId),
-        this.library.getDownloadedIds(),
-      ]);
+      const children = await this.library.getChildren(params.rootId);
       return {
         categories: children.filter((n) => n.isFolder),
         sessions: children.filter((n) => !n.isFolder),
-        downloaded,
       };
     },
   });

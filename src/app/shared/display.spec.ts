@@ -1,6 +1,7 @@
 import {
   categoryAppearance,
   displayName,
+  formatBytes,
   formatClock,
   formatDuration,
   sessionCountLabel,
@@ -59,5 +60,15 @@ describe('formatClock', () => {
     expect(formatClock(3729)).toBe('1:02:09');
     expect(formatClock(NaN)).toBe('0:00');
     expect(formatClock(-4)).toBe('0:00');
+  });
+});
+
+describe('formatBytes', () => {
+  it('picks a sensible unit', () => {
+    expect(formatBytes(300)).toBe('1 KB');
+    expect(formatBytes(850 * 1024)).toBe('850 KB');
+    expect(formatBytes(4.25 * 1024 ** 2)).toBe('4.3 MB');
+    expect(formatBytes(125 * 1024 ** 2)).toBe('125 MB');
+    expect(formatBytes(1.24 * 1024 ** 3)).toBe('1.2 GB');
   });
 });

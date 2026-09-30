@@ -27,6 +27,19 @@
       @if (countLabel()) {
         <p>{{ countLabel() }}</p>
       }
+      @if (c.allSessions.length) {
+        <div class="hero__actions">
+          @if (downloadingCount(); as n) {
+            <span class="hero__pill"><ion-spinner name="crescent"></ion-spinner>Downloading · {{ n }} left</span>
+          } @else if (notDownloaded().length) {
+            <button type="button" class="hero__pill hero__pill--button" (click)="confirmDownloadAll()">
+              <ion-icon name="cloud-download-outline" aria-hidden="true"></ion-icon>Download all
+            </button>
+          } @else {
+            <span class="hero__pill"><ion-icon name="checkmark-circle" aria-hidden="true"></ion-icon>Available offline</span>
+          }
+        </div>
+      }
     </header>
 
     @if (library.syncError()) {
@@ -47,7 +60,6 @@
       <app-session-list
         class="md-section"
         [sessions]="c.sessions"
-        [downloaded]="c.downloaded"
         (sessionSelect)="openSession($event)"
       ></app-session-list>
     }
