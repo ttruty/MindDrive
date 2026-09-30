@@ -363,3 +363,26 @@ All in `src/app/core/`, `providedIn: 'root'`, state exposed as read-only signals
 - Mini-player / background playback when the player is closed.
 - Stream long videos with MediaSource + Range requests instead of downloading the whole file first.
 - Background download of a whole category via Background Fetch (Chromium only).
+
+## 14. GitHub Pages deployment
+
+- `.github/workflows/deploy-pages.yml` runs on push to `main` or manually: `npm ci` → lint → test →
+  `npm run build:pages` → `actions/upload-pages-artifact` (`www/`) → `actions/deploy-pages`. The repo's
+  Pages source must be set to **GitHub Actions**.
+- `scripts/build-pages.mjs` picks the base href from, in order: `--base-href=`, then `PAGES_BASE_HREF`
+  (repo variable; use `/` for a custom domain), then `GITHUB_REPOSITORY` (`/<repo>/`, or `/` for
+  `<user>.github.io` repos). After `ng build` it copies `www/index.html` → `www/404.html` as the SPA fallback.
+- **Subpath rules** (the app is served from `/<repo>/`):
+  - Never hard-code root-absolute URLs in markup (`href="/…"`, `src="/…"`).
+  - Router links (`routerLink="/tabs/…"`, `navigateBack('/tabs/…')`, `redirectTo`) are fine; the
+    router resolves them against `<base href>`.
+  - `ion-tab-button` uses relative `href="tabs/<name>"`. Ionic navigates by the `tab` attribute; the href
+    only renders the inner anchor, and the anchor needs an href to stay focusable. With no href, keyboard
+    access breaks; with a root-absolute one, "open in new tab" escapes the subpath.
+  - Asset URLs in TS (e.g. Media Session artwork `icons/…`) are relative and resolve against `<base href>`.
+  - Manifest `start_url`/`scope`/`id`/shortcuts are `./…`, so they're relative to the manifest. ngsw.json
+    and the service-worker scope follow the base href automatically.
+- Checked with a local Pages emulation (build under `/MindDrive/`, no rewrites, root `404.html`). All of these
+  worked: cold deep link via `404.html`, tab navigation and keyboard, SW scope `/MindDrive/`, manifest with
+  no errors, and an offline deep link served by the SW.
+- OAuth: add `https://<user>.github.io` (origin only) to the client's Authorized JavaScript origins.

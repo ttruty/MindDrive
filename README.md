@@ -24,11 +24,31 @@ npm run lint
 
 In the app: **Settings → Connect Google Drive**, then paste your meditation folder's link (or browse to it).
 
-## Deploying
+## Deploying to GitHub Pages
 
-`npm run build` outputs a static site to `www/`. Host it anywhere that serves HTTPS and falls back to
-`index.html` for unknown paths (SPA routing). The app assumes it's served from the site root (`<base href="/">`).
-Remember to add the production origin to the OAuth client.
+A workflow (`.github/workflows/deploy-pages.yml`) lints, tests, builds and deploys on every push to `main`.
+
+1. Push this repo to GitHub (e.g. `github.com/<you>/MindDrive`).
+2. In the repo: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+3. In Google Cloud → your OAuth client → **Authorized JavaScript origins**, add `https://<you>.github.io`
+   (origin only — no `/MindDrive` path).
+4. Push to `main` (or run the workflow by hand from the Actions tab). The app is published at
+   `https://<you>.github.io/<repo>/`.
+
+How it works: `npm run build:pages` builds with `--base-href /<repo>/` (taken from the repo name in CI)
+and copies `index.html` to `404.html`. Pages has no SPA rewrites, so deep links like
+`/<repo>/tabs/explore` are served by `404.html` (HTTP 404 status, but the app loads normally); once
+installed, the service worker serves them from cache.
+
+- **Custom domain** (served at `/`): set the repository variable `PAGES_BASE_HREF` to `/`
+  (Settings → Secrets and variables → Actions → Variables), and add that domain as an OAuth origin.
+- **Build locally for Pages**: `npm run build:pages -- --base-href=/MindDrive/` → `www/`.
+- Pages sites are public even from a private repo (which needs a paid plan). Nobody can see your library
+  without signing in with your Google account, and while the OAuth consent screen is in *Testing*, only
+  listed test users can sign in at all.
+
+Other static hosts work too: serve `www/` over HTTPS with a fallback to `index.html` for unknown paths,
+building with the base href that matches where it's hosted.
 
 ## Icons
 

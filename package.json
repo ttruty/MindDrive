@@ -9,7 +9,8 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "lint": "ng lint",
-    "preview": "ng build && npx -y http-server www -p 8100 -s -c-1 --proxy http://localhost:8100?"
+    "preview": "ng build && npx -y http-server www -p 8100 -s -c-1 --proxy http://localhost:8100?",
+    "build:pages": "node scripts/build-pages.mjs"
   },
   "private": true,
   "dependencies": {
