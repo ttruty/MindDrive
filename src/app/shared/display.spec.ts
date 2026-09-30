@@ -4,6 +4,7 @@ import {
   formatBytes,
   formatClock,
   formatDuration,
+  plural,
   sessionCountLabel,
 } from './display';
 
@@ -70,5 +71,13 @@ describe('formatBytes', () => {
     expect(formatBytes(4.25 * 1024 ** 2)).toBe('4.3 MB');
     expect(formatBytes(125 * 1024 ** 2)).toBe('125 MB');
     expect(formatBytes(1.24 * 1024 ** 3)).toBe('1.2 GB');
+  });
+});
+
+describe('plural', () => {
+  it('handles one, many and -y words', () => {
+    expect(plural(1, 'category')).toBe('1 category');
+    expect(plural(3, 'category')).toBe('3 categories');
+    expect(plural(0, 'session')).toBe('0 sessions');
   });
 });

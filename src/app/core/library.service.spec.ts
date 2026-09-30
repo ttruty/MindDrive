@@ -1,7 +1,9 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { deleteDB } from 'idb';
 import { DB_NAME, DbService } from './db.service';
-import { DriveApiService } from './drive-api.service';
+import { DriveApiService, RequestOptions } from './drive-api.service';
+import { GoogleAuthService } from './google-auth.service';
 import { LibraryService } from './library.service';
 import { DriveNode, FOLDER_MIME } from './models';
 
@@ -36,25 +38,33 @@ const TREE: Record<string, DriveNode[]> = {
 };
 
 class FakeDriveApi {
-  getFile = vi.fn(async (id: string): Promise<DriveNode> => {
+  hasApiKey = true;
+  publicIds = new Set<string>();
+  isPublic = vi.fn(async (id: string) => this.publicIds.has(id));
+  getFile = vi.fn(async (id: string, _opts?: RequestOptions): Promise<DriveNode> => {
     if (id === ROOT_ID) return folder(ROOT_ID, 'Meditations', null);
     if (id === 'morning') return TREE[ROOT_ID][2];
     throw new Error('not found');
   });
-  listChildren = vi.fn(async (id: string) => TREE[id] ?? []);
+  listChildren = vi.fn(async (id: string, _opts?: RequestOptions) => TREE[id] ?? []);
 }
 
 describe('LibraryService', () => {
   let service: LibraryService;
   let api: FakeDriveApi;
+  const signedIn = signal(true);
+  const providers = () => [
+    DbService,
+    { provide: DriveApiService, useValue: api },
+    { provide: GoogleAuthService, useValue: { isSignedIn: signedIn } },
+  ];
 
   beforeEach(async () => {
     localStorage.clear();
     await deleteDB(DB_NAME);
     api = new FakeDriveApi();
-    TestBed.configureTestingModule({
-      providers: [DbService, { provide: DriveApiService, useValue: api }],
-    });
+    signedIn.set(true);
+    TestBed.configureTestingModule({ providers: providers() });
     service = TestBed.inject(LibraryService);
   });
 
@@ -67,7 +77,7 @@ describe('LibraryService', () => {
       `https://drive.google.com/drive/folders/${ROOT_ID}?usp=sharing`,
     );
 
-    expect(root).toEqual({ id: ROOT_ID, name: 'Meditations' });
+    expect(root).toEqual({ id: ROOT_ID, name: 'Meditations', access: 'account' });
     expect(service.root()).toEqual(root);
     expect(service.syncError()).toBeNull();
     expect(service.lastSync()).toMatchObject({ folders: 3, sessions: 3 });
@@ -105,9 +115,7 @@ describe('LibraryService', () => {
     localStorage.setItem('md.library.lastSync', JSON.stringify(old));
     (await TestBed.inject(DbService).db).close();
     TestBed.resetTestingModule();
-    TestBed.configureTestingModule({
-      providers: [DbService, { provide: DriveApiService, useValue: api }],
-    });
+    TestBed.configureTestingModule({ providers: providers() });
     expect(await TestBed.inject(LibraryService).syncIfStale()).toBe(true);
   });
 
@@ -132,11 +140,39 @@ describe('LibraryService', () => {
     expect(await service.getDescendantSessions('focus')).toEqual([]);
   });
 
+  it('marks a folder shared "Anyone with the link" as public, so it works signed out', async () => {
+    api.publicIds.add(ROOT_ID);
+    expect(await service.setRootFromInput(ROOT_ID)).toMatchObject({ access: 'public' });
+
+    signedIn.set(false);
+    expect(service.canSync()).toBe(true);
+  });
+
+  it('sets a public library without signing in, passing the link\'s resource key everywhere', async () => {
+    signedIn.set(false);
+    const root = await service.setRootFromInput(
+      `https://drive.google.com/drive/folders/${ROOT_ID}?resourcekey=0-key`,
+    );
+
+    expect(root).toEqual({ id: ROOT_ID, name: 'Meditations', access: 'public', resourceKey: '0-key' });
+    expect(api.isPublic).not.toHaveBeenCalled(); // reading it without an account already proved it
+    expect(api.getFile).toHaveBeenCalledWith(ROOT_ID, { resourceKey: '0-key' });
+    expect(api.listChildren).toHaveBeenCalledWith(ROOT_ID, { resourceKey: '0-key' });
+    expect(service.lastSync()).toMatchObject({ sessions: 3 });
+  });
+
+  it('needs an account to sync a private library once signed out', async () => {
+    await service.setRootFromInput(ROOT_ID);
+    signedIn.set(false);
+    expect(service.canSync()).toBe(false);
+  });
+
   it('persists the root across service instances', async () => {
     await service.setRootFromInput(ROOT_ID);
     expect(JSON.parse(localStorage.getItem('md.library.root')!)).toEqual({
       id: ROOT_ID,
       name: 'Meditations',
+      access: 'account',
     });
   });
 

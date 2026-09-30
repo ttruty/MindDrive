@@ -437,3 +437,35 @@ All in `src/app/core/`, `providedIn: 'root'`, state exposed as read-only signals
 - **Not covered:** Firefox Android and other browsers without `beforeinstallprompt` get no prompt, rather
   than nagging people who may already have it installed. There's no reliable way to detect an existing
   install from a browser tab.
+
+## 16. Shared links without sign-in
+
+- **Why an API key:** browsers can't fetch `drive.google.com` share links (no CORS), but the Drive API
+  accepts an **API key** (`environment.googleApiKey`) for items shared "Anyone with the link". Leaving the
+  key empty turns the feature off; everything then needs sign-in, as before.
+- **Credentials in `DriveApiService.request()`:**
+  - `credentials: 'auto'` (the default) uses the account's Bearer token when signed in, otherwise
+    `?key=`. With neither available it throws `AuthRequiredError` before any network call.
+  - `credentials: 'public'` always uses the key. `isPublic(id)` uses it to check sharing.
+  - Requests with only a key have no Authorization header.
+- **Resource keys:** older link-shared items need `X-Goog-Drive-Resource-Keys: <id>/<key>`. Google's CORS
+  preflight allows this header, alone and together with Authorization (checked).
+  - `parseDriveLink()` keeps `?resourcekey=` from pasted links.
+  - Drive returns `resourceKey` for children (it's in `FILE_FIELDS`), and it's stored on `DriveNode`.
+  - The walk, media streaming and downloads pass it along.
+- **Library access:** `RootFolder.access` is `'public'` or `'account'`.
+  - Set signed out, a folder is public by definition (reading it with the key proved that).
+  - Set signed in, `isPublic()` decides.
+  - A missing value (libraries from before this feature) is treated as `'account'`.
+  - `LibraryService.canSync` = signed in, or (public library and an API key). Startup sync, refresh,
+    Explore states and the Settings sync button use it.
+  - The reconnect banner is only for non-public libraries.
+- **Errors without an account:** 403 or 404 → `NOT_PUBLIC_MESSAGE` ("isn't shared publicly… set sharing
+  to Anyone with the link, or connect your Google account"). A 400 about the API key gets its own message.
+  The service-worker bypass fallback now only triggers on a 400 that mentions the parameter; an invalid
+  key also returns 400.
+- **Settings:**
+  - The link box is available signed out when a key is configured; Browse still needs an account.
+  - The library shows "Shared link · works without signing in" or "Your Google account".
+- **Checked in Chrome** (Google mocked, placeholder key): signed-out set-up via a link with a resourcekey,
+  sync, browse, stream, download, relaunch, and the private-folder error. Every request used only the key.

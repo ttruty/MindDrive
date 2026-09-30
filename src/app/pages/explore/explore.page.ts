@@ -14,6 +14,7 @@ import {
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { compassOutline, folderOpenOutline, leafOutline } from 'ionicons/icons';
+import { DriveApiService } from '../../core/drive-api.service';
 import { GoogleAuthService } from '../../core/google-auth.service';
 import { LibraryService } from '../../core/library.service';
 import { DriveNode } from '../../core/models';
@@ -47,6 +48,7 @@ import { SessionListComponent } from '../../shared/session-list/session-list.com
 export class ExplorePage {
   readonly auth = inject(GoogleAuthService);
   readonly library = inject(LibraryService);
+  readonly drive = inject(DriveApiService);
   private readonly player = inject(PlayerLauncher);
 
   /** Top level of the library, reloaded whenever a sync completes. */

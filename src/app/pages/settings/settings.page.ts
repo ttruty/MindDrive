@@ -25,13 +25,17 @@ import {
   cloudOutline,
   downloadOutline,
   folderOpenOutline,
+  linkOutline,
   logoGoogle,
+  personCircleOutline,
   refresh,
   trashOutline,
 } from 'ionicons/icons';
 import { DownloadsService } from '../../core/downloads.service';
+import { DriveApiService } from '../../core/drive-api.service';
 import { InstallPromptService } from '../../core/install-prompt.service';
 import { InstallLauncher } from '../../install/install-launcher.service';
+import { plural } from '../../shared/display';
 import { GoogleAuthService } from '../../core/google-auth.service';
 import { LibraryService, RootFolder } from '../../core/library.service';
 import { FolderPickerComponent } from './folder-picker/folder-picker.component';
@@ -62,11 +66,14 @@ export class SettingsPage {
   readonly auth = inject(GoogleAuthService);
   readonly library = inject(LibraryService);
   readonly downloads = inject(DownloadsService);
+  readonly drive = inject(DriveApiService);
   readonly install = inject(InstallPromptService);
   readonly installLauncher = inject(InstallLauncher);
   private readonly modalCtrl = inject(ModalController);
   private readonly alertCtrl = inject(AlertController);
   private readonly toastCtrl = inject(ToastController);
+
+  protected readonly plural = plural;
 
   readonly folderInput = signal('');
   readonly rootError = signal<string | null>(null);
@@ -78,7 +85,9 @@ export class SettingsPage {
       cloudOutline,
       downloadOutline,
       folderOpenOutline,
+      linkOutline,
       logoGoogle,
+      personCircleOutline,
       refresh,
       trashOutline,
     });

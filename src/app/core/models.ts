@@ -14,6 +14,8 @@ export interface DriveNode {
   durationMs?: number;
   /** Folders only: number of playable files anywhere beneath this folder (set during sync). */
   sessionCount?: number;
+  /** Needed to access some link-shared items (pre-2021 sharing); sent with every request for them. */
+  resourceKey?: string;
 }
 
 /** mediaBlobs store — downloaded content, written by DownloadsService. */

@@ -36,6 +36,7 @@ export class AppComponent {
 
   private async restoreSession(): Promise<void> {
     await this.auth.init();
-    if (this.auth.isSignedIn()) void this.library.syncIfStale();
+    // Signed in, or a library shared "Anyone with the link" (no sign-in needed).
+    if (this.library.canSync()) void this.library.syncIfStale();
   }
 }

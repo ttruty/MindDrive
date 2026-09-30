@@ -13,6 +13,14 @@ downloads and a daily streak. There's no backend; everything lives in your brows
    *Authorized JavaScript origin* (e.g. `http://localhost:8100` and your production URL).
 4. Put the client ID in `src/environments/environment.ts` and `environment.prod.ts` (`googleClientId`).
    It isn't a secret.
+5. *(Optional — shared links without sign-in)* Create an **API key** (Credentials → Create credentials →
+   API key). Restrict it: **API restrictions** → Google Drive API only; **Application restrictions** →
+   Websites, with `http://localhost:8100/*` and your site (e.g. `https://timtruty.com/*`). Put it in
+   `googleApiKey` in both environment files. The key ships in the site's JavaScript — the restrictions
+   are what keep it from being used elsewhere.
+
+With the API key set, anyone can paste a folder link shared as **“Anyone with the link”** into
+Settings → Library and listen without signing in. Private folders still need **Connect Google Drive**.
 
 ```bash
 npm install

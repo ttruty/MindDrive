@@ -45,6 +45,19 @@ ion-list-header {
   font-size: 0.9rem;
 }
 
+.md-access {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: 0.8rem;
+  color: var(--ion-color-medium);
+}
+
+.md-hint {
+  margin: 10px 0 0 !important;
+}
+
 .md-input {
   margin-top: 16px;
   --border-radius: var(--md-radius-md);

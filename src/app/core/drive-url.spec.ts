@@ -1,4 +1,4 @@
-import { parseFolderId } from './drive-url';
+import { parseDriveLink, parseFolderId } from './drive-url';
 
 const ID = '1AbCdEfGhIjKlMnOpQrStUvWxYz_-123';
 
@@ -19,5 +19,16 @@ describe('parseFolderId', () => {
     expect(parseFolderId('')).toBeNull();
     expect(parseFolderId('not a link')).toBeNull();
     expect(parseFolderId('https://drive.google.com/drive/my-drive')).toBeNull();
+  });
+});
+
+describe('parseDriveLink', () => {
+  it('keeps the resource key from older share links', () => {
+    expect(parseDriveLink(`https://drive.google.com/drive/folders/${ID}?resourcekey=0-AbC_d&usp=sharing`)).toEqual({
+      id: ID,
+      resourceKey: '0-AbC_d',
+    });
+    expect(parseDriveLink(`https://drive.google.com/drive/folders/${ID}?usp=sharing`)).toEqual({ id: ID });
+    expect(parseDriveLink('nope')).toBeNull();
   });
 });

@@ -29,7 +29,13 @@ export function formatDuration(ms: number): string {
 
 export function sessionCountLabel(count: number | undefined): string {
   if (count === undefined) return '';
-  return count === 1 ? '1 session' : `${count} sessions`;
+  return plural(count, 'session');
+}
+
+/** "1 category", "3 categories", "2 sessions". */
+export function plural(count: number, singular: string, pluralForm?: string): string {
+  const word = count === 1 ? singular : (pluralForm ?? (singular.endsWith('y') ? `${singular.slice(0, -1)}ies` : `${singular}s`));
+  return `${count} ${word}`;
 }
 
 export interface CategoryAppearance {

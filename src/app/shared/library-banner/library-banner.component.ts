@@ -25,7 +25,9 @@ export class LibraryBannerComponent {
 
   readonly kind = computed<BannerKind | null>(() => {
     if (!this.network.online()) return 'offline';
-    if (this.auth.status() === 'reconnect' && this.library.root()) return 'reconnect';
+    // Public libraries work without an account, so there's nothing to reconnect.
+    const root = this.library.root();
+    if (this.auth.status() === 'reconnect' && root && root.access !== 'public') return 'reconnect';
     if (this.library.syncError() && this.library.lastSync()) return 'sync-failed';
     return null;
   });

@@ -1,12 +1,19 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { DbService } from './db.service';
 import { DriveApiService } from './drive-api.service';
-import { parseFolderId } from './drive-url';
+import { parseDriveLink } from './drive-url';
+import { GoogleAuthService } from './google-auth.service';
 import { DriveNode, isPlayableMime } from './models';
 
 export interface RootFolder {
   id: string;
   name: string;
+  /**
+   * 'public' = shared "Anyone with the link", so it syncs and plays without signing in.
+   * 'account' (or missing, for libraries set up before this existed) = needs the owner's sign-in.
+   */
+  access?: 'public' | 'account';
+  resourceKey?: string;
 }
 
 export interface SyncSummary {
@@ -39,6 +46,7 @@ const WALK_CONCURRENCY = 4;
 export class LibraryService {
   private readonly db = inject(DbService);
   private readonly api = inject(DriveApiService);
+  private readonly auth = inject(GoogleAuthService);
 
   private readonly _root = signal<RootFolder | null>(readJson<RootFolder>(ROOT_KEY));
   private readonly _lastSync = signal<SyncSummary | null>(readJson<SyncSummary>(SYNC_KEY));
@@ -54,20 +62,30 @@ export class LibraryService {
   /** Bumps on every driveCache write (sync, clear, learned durations). Key cache reads on this. */
   readonly revision = this._revision.asReadonly();
 
+  /** Whether Drive is reachable for this library right now: signed in, or a public library. */
+  readonly canSync = computed(
+    () => this.auth.isSignedIn() || (this._root()?.access === 'public' && this.api.hasApiKey),
+  );
+
   private currentSync: Promise<boolean> | null = null;
 
   /** Set the root from a pasted Drive folder link or ID, then sync. Throws on invalid input. */
   async setRootFromInput(input: string): Promise<RootFolder> {
-    const id = parseFolderId(input);
-    if (!id) throw new Error("That doesn't look like a Google Drive folder link or ID.");
-    return this.setRoot(id);
+    const link = parseDriveLink(input);
+    if (!link) throw new Error("That doesn't look like a Google Drive folder link or ID.");
+    return this.setRoot(link.id, link.resourceKey);
   }
 
   /** Validate that `id` is an accessible folder, make it the root, then sync. */
-  async setRoot(id: string): Promise<RootFolder> {
-    const node = await this.api.getFile(id);
+  async setRoot(id: string, resourceKey?: string): Promise<RootFolder> {
+    const node = await this.api.getFile(id, { resourceKey });
     if (!node.isFolder) throw new Error('That link points to a file, not a folder.');
-    const root = { id: node.id, name: node.name };
+    resourceKey ??= node.resourceKey;
+    // Signed out, getFile above already proved it's public. Signed in, check — a public library
+    // keeps working after signing out.
+    const access =
+      !this.auth.isSignedIn() || (await this.api.isPublic(node.id, resourceKey)) ? 'public' : 'account';
+    const root: RootFolder = { id: node.id, name: node.name, access, ...(resourceKey ? { resourceKey } : {}) };
     this._root.set(root);
     writeJson(ROOT_KEY, root);
     await this.sync();
@@ -160,7 +178,11 @@ export class LibraryService {
     this._syncError.set(null);
     this._progress.set({ folders: 0, sessions: 0 });
     try {
-      const rootNode = { ...(await this.api.getFile(root.id)), parentId: null };
+      const rootNode: DriveNode = {
+        ...(await this.api.getFile(root.id, { resourceKey: root.resourceKey })),
+        parentId: null,
+        ...(root.resourceKey ? { resourceKey: root.resourceKey } : {}),
+      };
       const nodes = await this.walk(rootNode);
       countSessions(nodes);
 
@@ -180,7 +202,7 @@ export class LibraryService {
       this._revision.update((r) => r + 1);
       writeJson(SYNC_KEY, summary);
       if (rootNode.name !== root.name) {
-        const renamed = { id: root.id, name: rootNode.name };
+        const renamed = { ...root, name: rootNode.name };
         this._root.set(renamed);
         writeJson(ROOT_KEY, renamed);
       }
@@ -197,20 +219,22 @@ export class LibraryService {
   private async walk(rootNode: DriveNode): Promise<DriveNode[]> {
     const nodes: DriveNode[] = [rootNode];
     const visited = new Set([rootNode.id]);
-    let level = [rootNode.id];
+    let level: DriveNode[] = [rootNode];
     let folders = 0;
     let sessions = 0;
 
     while (level.length) {
-      const next: string[] = [];
+      const next: DriveNode[] = [];
       for (let i = 0; i < level.length; i += WALK_CONCURRENCY) {
         const batch = level.slice(i, i + WALK_CONCURRENCY);
-        const results = await Promise.all(batch.map((id) => this.api.listChildren(id)));
+        const results = await Promise.all(
+          batch.map((folder) => this.api.listChildren(folder.id, { resourceKey: folder.resourceKey })),
+        );
         for (const child of results.flat()) {
           if (child.isFolder) {
             if (visited.has(child.id)) continue;
             visited.add(child.id);
-            next.push(child.id);
+            next.push(child);
             folders++;
           } else if (isPlayableMime(child.mimeType)) {
             sessions++;

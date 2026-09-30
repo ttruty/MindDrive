@@ -46,6 +46,9 @@
             Welcome back — tap to reconnect to your library.
           } @else {
             Connect the Google Drive that holds your meditations. MindDrive only ever reads your files.
+            @if (drive.hasApiKey) {
+              <br /><span class="md-small">Using a folder shared as “Anyone with the link”? You can skip this and paste the link under Library.</span>
+            }
           }
         </p>
         <ion-button expand="block" shape="round" (click)="connect()">
@@ -66,10 +69,16 @@
       <div class="md-grow">
         <div class="md-muted md-small">Library folder</div>
         <strong>{{ library.root()?.name ?? 'Not set yet' }}</strong>
+        @if (library.root(); as root) {
+          <div class="md-access">
+            <ion-icon [name]="root.access === 'public' ? 'link-outline' : 'person-circle-outline'" aria-hidden="true"></ion-icon>
+            {{ root.access === 'public' ? 'Shared link · works without signing in' : 'Your Google account' }}
+          </div>
+        }
       </div>
     </div>
 
-    @if (auth.isSignedIn()) {
+    @if (auth.isSignedIn() || drive.hasApiKey) {
       <ion-input
         class="md-input"
         fill="outline"
@@ -79,14 +88,21 @@
         (keyup.enter)="useFolderLink()"
         [disabled]="settingRoot()"
       ></ion-input>
+      @if (!auth.isSignedIn()) {
+        <p class="md-muted md-small md-hint">
+          No sign-in needed for folders shared as “Anyone with the link”. For private folders, connect Google Drive above.
+        </p>
+      }
       <div class="md-actions">
         <ion-button shape="round" [disabled]="!folderInput().trim() || settingRoot()" (click)="useFolderLink()">
           Use this folder
         </ion-button>
-        <ion-button shape="round" fill="outline" [disabled]="settingRoot()" (click)="browse()">
-          <ion-icon slot="start" name="folder-open-outline"></ion-icon>
-          Browse
-        </ion-button>
+        @if (auth.isSignedIn()) {
+          <ion-button shape="round" fill="outline" [disabled]="settingRoot()" (click)="browse()">
+            <ion-icon slot="start" name="folder-open-outline"></ion-icon>
+            Browse
+          </ion-button>
+        }
       </div>
     } @else {
       <p class="md-muted md-small">Connect Google Drive to choose or change your library folder.</p>
@@ -101,9 +117,9 @@
         <div class="md-grow">
           @if (library.progress(); as p) {
             <strong>Syncing…</strong>
-            <div class="md-muted md-small">{{ p.folders }} categories · {{ p.sessions }} sessions found</div>
+            <div class="md-muted md-small">{{ plural(p.folders, 'category') }} · {{ plural(p.sessions, 'session') }} found</div>
           } @else if (library.lastSync(); as s) {
-            <strong>{{ s.folders }} categories · {{ s.sessions }} sessions</strong>
+            <strong>{{ plural(s.folders, 'category') }} · {{ plural(s.sessions, 'session') }}</strong>
             <div class="md-muted md-small">Synced {{ s.syncedAt | date: 'MMM d, h:mm a' }}</div>
           } @else {
             <strong>Not synced yet</strong>
@@ -112,7 +128,7 @@
         @if (library.progress()) {
           <ion-spinner name="crescent"></ion-spinner>
         } @else {
-          <ion-button fill="clear" [disabled]="!auth.isSignedIn()" (click)="sync()" aria-label="Sync library">
+          <ion-button fill="clear" [disabled]="!library.canSync()" (click)="sync()" aria-label="Sync library">
             <ion-icon slot="icon-only" name="refresh"></ion-icon>
           </ion-button>
         }

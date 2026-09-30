@@ -41,6 +41,7 @@ export class MediaSourceService {
       const blob = await this.api.downloadMedia(node.id, {
         signal: opts.signal,
         expectedBytes: node.sizeBytes,
+        resourceKey: node.resourceKey,
         onProgress: opts.onProgress,
       });
       this.lastStreamed = { id: node.id, blob: withMimeType(blob, node.mimeType) };

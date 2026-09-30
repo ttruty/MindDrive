@@ -155,6 +155,7 @@ export class DownloadsService {
           await this.api.downloadMedia(node.id, {
             signal: controller.signal,
             expectedBytes: node.sizeBytes,
+            resourceKey: node.resourceKey,
             onProgress: (progress) => this.updateProgress(node.id, progress),
           }),
           node.mimeType,

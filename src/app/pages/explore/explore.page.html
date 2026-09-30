@@ -5,7 +5,7 @@
 </ion-header>
 
 <ion-content [fullscreen]="true">
-  <ion-refresher slot="fixed" [disabled]="!auth.isSignedIn() || !library.root()" (ionRefresh)="refresh($any($event))">
+  <ion-refresher slot="fixed" [disabled]="!library.canSync() || !library.root()" (ionRefresh)="refresh($any($event))">
     <ion-refresher-content></ion-refresher-content>
   </ion-refresher>
 
@@ -26,7 +26,9 @@
         <p>Pick the Google Drive folder that holds your meditations.</p>
       } @else {
         <h2>Connect your library</h2>
-        <p>Connect Google Drive to bring your meditations into MindDrive.</p>
+        <p>
+          Connect Google Drive to bring your meditations into MindDrive{{ drive.hasApiKey ? ', or paste a folder link shared with “Anyone with the link” — no sign-in needed' : '' }}.
+        </p>
       }
       <ion-button shape="round" class="md-placeholder__action" routerLink="/tabs/settings">
         {{ auth.isSignedIn() ? 'Choose a folder' : 'Get started' }}
@@ -42,10 +44,10 @@
       } @else if (library.syncError(); as message) {
         <h2>We couldn't load your library</h2>
         <p>{{ message }}</p>
-        <ion-button shape="round" class="md-placeholder__action" [disabled]="!auth.isSignedIn()" (click)="library.sync()">
+        <ion-button shape="round" class="md-placeholder__action" [disabled]="!library.canSync()" (click)="library.sync()">
           Try again
         </ion-button>
-      } @else if (auth.isSignedIn()) {
+      } @else if (library.canSync()) {
         <h2>Gathering your library…</h2>
         <p>&nbsp;</p>
       } @else {
