@@ -1,0 +1,16 @@
+<ion-list lines="none">
+  @for (session of sessions(); track session.id) {
+    <ion-item button detail="false" (click)="sessionSelect.emit(session)">
+      <span class="play" slot="start" aria-hidden="true"><ion-icon name="play"></ion-icon></span>
+      <ion-label>
+        <h3>{{ displayName(session) }}</h3>
+        <p>
+          {{ meta(session) }}
+          @if (downloaded().has(session.id)) {
+            <span class="badge"><ion-icon name="checkmark-circle" aria-hidden="true"></ion-icon>Downloaded</span>
+          }
+        </p>
+      </ion-label>
+    </ion-item>
+  }
+</ion-list>

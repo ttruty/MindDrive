@@ -1,0 +1,70 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/explore" text=""></ion-back-button>
+    </ion-buttons>
+    <ion-title>{{ title() }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-refresher slot="fixed" [disabled]="!auth.isSignedIn()" (ionRefresh)="refresh($any($event))">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  @if (contents.value(); as c) {
+    <nav class="crumbs" aria-label="Breadcrumb">
+      @for (crumb of c.crumbs; track crumb.url) {
+        <button type="button" (click)="goTo(crumb)">{{ crumb.label }}</button>
+        <ion-icon name="chevron-forward" aria-hidden="true"></ion-icon>
+      }
+      <span aria-current="page">{{ title() }}</span>
+    </nav>
+
+    <header class="hero" [style.background]="appearance()?.background">
+      <span class="hero__icon"><ion-icon [name]="appearance()?.icon" aria-hidden="true"></ion-icon></span>
+      <h1>{{ title() }}</h1>
+      @if (countLabel()) {
+        <p>{{ countLabel() }}</p>
+      }
+    </header>
+
+    @if (library.syncError()) {
+      <p class="md-banner"><ion-icon name="cloud-offline-outline" aria-hidden="true"></ion-icon>Showing your saved library — couldn't refresh just now.</p>
+    }
+
+    @if (c.categories.length) {
+      <h2 class="md-section-title">{{ c.sessions.length ? 'Collections' : 'Explore ' + title() }}</h2>
+      <div class="md-card-grid">
+        @for (category of c.categories; track category.id) {
+          <app-category-card [node]="category"></app-category-card>
+        }
+      </div>
+    }
+
+    @if (c.sessions.length) {
+      <h2 class="md-section-title">Sessions</h2>
+      <app-session-list
+        class="md-section"
+        [sessions]="c.sessions"
+        [downloaded]="c.downloaded"
+        (sessionSelect)="openSession($event)"
+      ></app-session-list>
+    }
+
+    @if (!c.categories.length && !c.sessions.length) {
+      <p class="md-empty-note">Nothing to play here yet.</p>
+    }
+  } @else if (contents.isLoading()) {
+    <div class="md-center"><ion-spinner name="crescent"></ion-spinner></div>
+  } @else {
+    <section class="md-placeholder">
+      <div class="md-placeholder__orb"><ion-icon name="search-outline" aria-hidden="true"></ion-icon></div>
+      <h2>This category has moved</h2>
+      <p>It's no longer in your library — it may have been renamed or removed in Google Drive.</p>
+      <ion-button shape="round" class="md-placeholder__action" (click)="goTo({ label: 'Explore', url: '/tabs/explore' })">
+        Back to Explore
+      </ion-button>
+    </section>
+  }
+</ion-content>

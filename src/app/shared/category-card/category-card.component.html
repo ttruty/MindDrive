@@ -1,0 +1,15 @@
+<a
+  class="card ion-activatable"
+  [routerLink]="['/tabs/explore', node().id]"
+  routerDirection="forward"
+  [style.background]="appearance().background"
+>
+  <span class="card__icon"><ion-icon [name]="appearance().icon" aria-hidden="true"></ion-icon></span>
+  <span class="card__text">
+    <span class="card__title">{{ title() }}</span>
+    @if (countLabel()) {
+      <span class="card__count">{{ countLabel() }}</span>
+    }
+  </span>
+  <ion-ripple-effect></ion-ripple-effect>
+</a>

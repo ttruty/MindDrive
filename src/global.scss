@@ -118,3 +118,61 @@ ion-card {
 @media (prefers-reduced-motion: reduce) {
   .md-placeholder__orb { animation: none; }
 }
+
+// ---- Layout helpers shared by Explore / category pages -------------------
+.md-section-title {
+  margin: 24px 20px 12px;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.md-section {
+  display: block;
+  margin: 0 16px 16px;
+}
+
+.md-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 0 16px 8px;
+}
+
+.md-center {
+  display: grid;
+  place-items: center;
+  padding: 64px 0;
+}
+
+.md-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 16px 0;
+  padding: 10px 14px;
+  border-radius: var(--md-radius-md);
+  background: var(--md-surface-muted);
+  color: var(--ion-color-medium);
+  font-size: 0.85rem;
+}
+
+.md-placeholder__action {
+  margin-top: 20px;
+}
+
+// Keep content at a comfortable reading width on tablets / desktop.
+ion-content::part(scroll) {
+  padding-bottom: 24px;
+}
+@media (min-width: 768px) {
+  .md-card-grid,
+  .md-section,
+  .md-section-title,
+  .md-banner {
+    max-width: 880px;
+    margin-inline: auto;
+  }
+  .md-section-title {
+    padding-inline: 4px;
+  }
+}

@@ -11,6 +11,8 @@ export interface RootFolder {
 
 export interface SyncSummary {
   syncedAt: string;
+  /** CACHE_FORMAT at the time of the sync; an older format forces a re-sync. */
+  format?: number;
   folders: number;
   sessions: number;
 }
@@ -22,6 +24,8 @@ export interface SyncProgress {
 
 const ROOT_KEY = 'md.library.root';
 const SYNC_KEY = 'md.library.lastSync';
+/** Bump when DriveNode gains fields computed during sync, so existing caches get rebuilt. */
+const CACHE_FORMAT = 2;
 /** Automatic re-syncs (on startup / reconnect) only happen when the cache is older than this. */
 const STALE_AFTER_MS = 12 * 60 * 60 * 1000;
 /** Parallel files.list calls during a walk — enough to be quick, low enough to avoid rate limits. */
@@ -79,7 +83,8 @@ export class LibraryService {
   /** Sync only if a root is set and the cache is missing or stale. */
   syncIfStale(): Promise<boolean> {
     const last = this._lastSync();
-    const fresh = last && Date.now() - Date.parse(last.syncedAt) < STALE_AFTER_MS;
+    const fresh =
+      last?.format === CACHE_FORMAT && Date.now() - Date.parse(last.syncedAt) < STALE_AFTER_MS;
     if (!this._root() || fresh) return Promise.resolve(false);
     return this.sync();
   }
@@ -88,14 +93,39 @@ export class LibraryService {
     return (await this.db.db).get('driveCache', id);
   }
 
-  /** Cached children of a folder: subfolders first, then sessions, each in natural name order. */
+  /**
+   * Cached children of a folder: subfolders first, then sessions, each in natural name order.
+   * Folders with no sessions anywhere beneath them are left out.
+   */
   async getChildren(parentId: string): Promise<DriveNode[]> {
     const children = await (await this.db.db).getAllFromIndex('driveCache', 'parentId', parentId);
-    return children.sort(
+    return children.filter((n) => !n.isFolder || n.sessionCount !== 0).sort(
       (a, b) =>
         Number(b.isFolder) - Number(a.isFolder) ||
         a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }),
     );
+  }
+
+  /**
+   * The chain of folders from just below the root down to (and including) `id`.
+   * Empty for the root itself or for nodes not in the cache.
+   */
+  async getTrail(id: string): Promise<DriveNode[]> {
+    const db = await this.db.db;
+    const trail: DriveNode[] = [];
+    const seen = new Set<string>();
+    let node = await db.get('driveCache', id);
+    while (node && node.parentId !== null && !seen.has(node.id)) {
+      seen.add(node.id);
+      trail.unshift(node);
+      node = await db.get('driveCache', node.parentId);
+    }
+    return trail;
+  }
+
+  /** Drive IDs of sessions saved for offline playback. */
+  async getDownloadedIds(): Promise<Set<string>> {
+    return new Set(await (await this.db.db).getAllKeys('mediaBlobs'));
   }
 
   /** Forget the cached tree (the root folder setting is kept). */
@@ -114,6 +144,7 @@ export class LibraryService {
     try {
       const rootNode = { ...(await this.api.getFile(root.id)), parentId: null };
       const nodes = await this.walk(rootNode);
+      countSessions(nodes);
 
       const tx = (await this.db.db).transaction('driveCache', 'readwrite');
       await tx.store.clear();
@@ -121,6 +152,7 @@ export class LibraryService {
 
       const summary: SyncSummary = {
         syncedAt: new Date().toISOString(),
+        format: CACHE_FORMAT,
         folders: nodes.filter((n) => n.isFolder).length - 1, // exclude the root itself
         sessions: nodes.filter((n) => !n.isFolder).length,
       };
@@ -171,6 +203,20 @@ export class LibraryService {
       level = next;
     }
     return nodes;
+  }
+}
+
+/**
+ * Sets sessionCount on every folder. `nodes` is in breadth-first order, so walking it backwards
+ * visits every child before its parent.
+ */
+function countSessions(nodes: DriveNode[]): void {
+  const counts = new Map<string, number>();
+  for (let i = nodes.length - 1; i >= 0; i--) {
+    const node = nodes[i];
+    const own = node.isFolder ? (counts.get(node.id) ?? 0) : 1;
+    if (node.isFolder) node.sessionCount = own;
+    if (node.parentId) counts.set(node.parentId, (counts.get(node.parentId) ?? 0) + own);
   }
 }
 

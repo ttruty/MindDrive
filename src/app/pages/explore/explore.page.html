@@ -5,17 +5,85 @@
 </ion-header>
 
 <ion-content [fullscreen]="true">
+  <ion-refresher slot="fixed" [disabled]="!auth.isSignedIn() || !library.root()" (ionRefresh)="refresh($any($event))">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
   <ion-header collapse="condense">
     <ion-toolbar>
       <ion-title size="large">Explore</ion-title>
     </ion-toolbar>
   </ion-header>
 
-  <section class="md-placeholder">
-    <div class="md-placeholder__orb">
-      <ion-icon name="compass-outline" aria-hidden="true"></ion-icon>
-    </div>
-    <h2>Find your next session</h2>
-    <p>Categories from your Drive library arrive in Phase 2.</p>
-  </section>
+  @if (!library.root()) {
+    <!-- Not set up yet -->
+    <section class="md-placeholder">
+      <div class="md-placeholder__orb"><ion-icon name="compass-outline" aria-hidden="true"></ion-icon></div>
+      @if (auth.isSignedIn()) {
+        <h2>Choose your library</h2>
+        <p>Pick the Google Drive folder that holds your meditations.</p>
+      } @else {
+        <h2>Connect your library</h2>
+        <p>Connect Google Drive to bring your meditations into MindDrive.</p>
+      }
+      <ion-button shape="round" class="md-placeholder__action" routerLink="/tabs/settings">
+        {{ auth.isSignedIn() ? 'Choose a folder' : 'Get started' }}
+      </ion-button>
+    </section>
+  } @else if (!library.lastSync()) {
+    <!-- Root chosen, first sync pending / running / failed -->
+    <section class="md-placeholder">
+      <div class="md-placeholder__orb"><ion-icon name="leaf-outline" aria-hidden="true"></ion-icon></div>
+      @if (library.progress(); as p) {
+        <h2>Gathering your library…</h2>
+        <p>{{ p.sessions }} sessions found so far</p>
+      } @else if (library.syncError(); as message) {
+        <h2>We couldn't load your library</h2>
+        <p>{{ message }}</p>
+        <ion-button shape="round" class="md-placeholder__action" [disabled]="!auth.isSignedIn()" (click)="library.sync()">
+          Try again
+        </ion-button>
+      } @else if (auth.isSignedIn()) {
+        <h2>Gathering your library…</h2>
+        <p>&nbsp;</p>
+      } @else {
+        <h2>Reconnect to continue</h2>
+        <p>Reconnect Google Drive to load your library.</p>
+        <ion-button shape="round" class="md-placeholder__action" routerLink="/tabs/settings">Reconnect</ion-button>
+      }
+    </section>
+  } @else if (contents.value(); as c) {
+    @if (library.syncError()) {
+      <p class="md-banner"><ion-icon name="cloud-offline-outline" aria-hidden="true"></ion-icon>Showing your saved library — couldn't refresh just now.</p>
+    }
+
+    @if (isEmpty()) {
+      <section class="md-placeholder">
+        <div class="md-placeholder__orb"><ion-icon name="folder-open-outline" aria-hidden="true"></ion-icon></div>
+        <h2>Nothing to play yet</h2>
+        <p>Add audio or video files to “{{ library.root()?.name }}” in Google Drive, then pull down to refresh.</p>
+      </section>
+    }
+
+    @if (c.categories.length) {
+      <h2 class="md-section-title">Categories</h2>
+      <div class="md-card-grid">
+        @for (category of c.categories; track category.id) {
+          <app-category-card [node]="category"></app-category-card>
+        }
+      </div>
+    }
+
+    @if (c.sessions.length) {
+      <h2 class="md-section-title">Sessions</h2>
+      <app-session-list
+        class="md-section"
+        [sessions]="c.sessions"
+        [downloaded]="c.downloaded"
+        (sessionSelect)="openSession($event)"
+      ></app-session-list>
+    }
+  } @else {
+    <div class="md-center"><ion-spinner name="crescent"></ion-spinner></div>
+  }
 </ion-content>

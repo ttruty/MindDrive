@@ -72,11 +72,43 @@ describe('LibraryService', () => {
     expect(service.syncError()).toBeNull();
     expect(service.lastSync()).toMatchObject({ folders: 3, sessions: 3 });
 
+    // Focus has no sessions beneath it, so it's hidden.
     const top = await service.getChildren(ROOT_ID);
-    expect(top.map((n) => n.name)).toEqual(['Focus', 'Sleep', 'morning.mp3']);
+    expect(top.map((n) => n.name)).toEqual(['Sleep', 'morning.mp3']);
+    expect(top[0].sessionCount).toBe(2);
+    expect((await service.getNode(ROOT_ID))?.sessionCount).toBe(3);
+    expect((await service.getNode('focus'))?.sessionCount).toBe(0);
     expect(await service.getNode('notes')).toBeUndefined();
     expect((await service.getChildren('deep')).map((n) => n.id)).toEqual(['rest']);
     expect(await service.getNode(ROOT_ID)).toMatchObject({ parentId: null, name: 'Meditations' });
+  });
+
+  it('builds a trail from below the root down to a node', async () => {
+    await service.setRootFromInput(ROOT_ID);
+
+    expect((await service.getTrail('rest')).map((n) => n.name)).toEqual([
+      'Sleep',
+      'Deep Rest',
+      'rest.m4a',
+    ]);
+    expect(await service.getTrail(ROOT_ID)).toEqual([]);
+    expect(await service.getTrail('missing')).toEqual([]);
+  });
+
+  it('treats a cache from an older format as stale', async () => {
+    await service.setRootFromInput(ROOT_ID);
+    api.listChildren.mockClear();
+    expect(await service.syncIfStale()).toBe(false);
+    expect(api.listChildren).not.toHaveBeenCalled();
+
+    const old = { ...service.lastSync()!, format: 1 };
+    localStorage.setItem('md.library.lastSync', JSON.stringify(old));
+    (await TestBed.inject(DbService).db).close();
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [DbService, { provide: DriveApiService, useValue: api }],
+    });
+    expect(await TestBed.inject(LibraryService).syncIfStale()).toBe(true);
   });
 
   it('persists the root across service instances', async () => {
@@ -100,7 +132,7 @@ describe('LibraryService', () => {
     expect(await service.sync()).toBe(false);
     expect(service.syncError()).toBe('offline');
     expect(service.progress()).toBeNull();
-    expect(await service.getChildren(ROOT_ID)).toHaveLength(3);
+    expect(await service.getChildren(ROOT_ID)).toHaveLength(2);
   });
 
   it('clears the cache but keeps the root', async () => {

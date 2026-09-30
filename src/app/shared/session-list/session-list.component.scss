@@ -1,0 +1,50 @@
+ion-list {
+  background: transparent;
+  padding: 0;
+}
+
+ion-item {
+  --background: var(--md-surface);
+  --border-radius: var(--md-radius-md);
+  --padding-start: 12px;
+  --inner-padding-end: 12px;
+  margin-bottom: 10px;
+  box-shadow: var(--md-shadow);
+  border-radius: var(--md-radius-md);
+}
+
+.play {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-inline-end: 12px;
+  border-radius: 50%;
+  background: var(--md-surface-muted);
+  color: var(--ion-color-primary);
+  font-size: 18px;
+
+  ion-icon {
+    margin-inline-start: 2px; // optically centre the play triangle
+  }
+}
+
+h3 {
+  font-weight: 600;
+  white-space: normal;
+}
+
+p {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ion-color-medium);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--ion-color-secondary);
+  font-weight: 600;
+}

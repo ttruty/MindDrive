@@ -98,8 +98,8 @@ expose raw Drive chrome (file icons, "My Drive," etc.).
 |---|---|---|
 | 0 | Ionic Angular PWA scaffold, routing, tab shell, theme, this CLAUDE.md | ✅ Done |
 | 1 | Google OAuth (GIS) + Drive service: sign-in/out, token handling, root-folder picker, `files.list` folder-tree walk, `driveCache` store | ✅ Done |
-| 2 | Explore UI: category cards from top-level folders, drill-down, session list, breadcrumbs | ⏳ Next |
-| 3 | Player: audio/video playback (authenticated blob fetch), custom controls, resume position | |
+| 2 | Explore UI: category cards from top-level folders, drill-down, session list, breadcrumbs | ✅ Done |
+| 3 | Player: audio/video playback (authenticated blob fetch), custom controls, resume position | ⏳ Next |
 | 4 | Downloads: store blobs in `mediaBlobs`, prefer local blob over network, Downloads tab UI, storage usage + delete | |
 | 5 | Streak: `streakLog` writes on playback start, streak calc, home heatmap, "Continue listening" | |
 | 6 | Polish: real icons/manifest branding, SW caching strategy, empty/loading/error states, responsive pass | |
@@ -111,10 +111,11 @@ expose raw Drive chrome (file icons, "My Drive," etc.).
 - The service worker is **disabled in dev** (`isDevMode()`); test PWA behaviour against a prod build
   served statically, e.g. `npx http-server www -p 8100 -s --proxy 'http://localhost:8100?'`
 - **Layout**
-  - `src/app/tabs/` — tab shell (`tabs.page.*`) and child routes (`tabs.routes.ts`): `/tabs/home|explore|downloads|settings`
+  - `src/app/tabs/` — tab shell (`tabs.page.*`) and child routes (`tabs.routes.ts`): `/tabs/home|explore|downloads|settings`,
+    plus `/tabs/explore/:folderId` (category drill-down, stacked inside the Explore tab)
   - `src/app/pages/<name>/` — one folder per tab page (standalone, `IonXxx` imports from `@ionic/angular`)
   - `src/app/core/` — services and models (see §8); future player/streak services go here too
-  - Future: `src/app/shared/` for reusable components
+  - `src/app/shared/` — reusable UI (`category-card`, `session-list`) and `display.ts` helpers
 - **Theme**: `src/theme/variables.scss` defines the Ionic color palette + surfaces for light and dark
   (`prefers-color-scheme`). Dark overrides use `:root, :root.ios, :root.md` to beat Ionic's
   `dark.system.css` specificity. App-specific tokens are `--md-*` (surface, radius, shadow, orb gradient) —
@@ -152,9 +153,40 @@ All in `src/app/core/`, `providedIn: 'root'`, state exposed as read-only signals
     Concurrent calls share one run; failures go to `syncError` and leave the previous cache intact.
   - `syncIfStale()` (older than 12h) runs on startup and after connecting. Settings has a manual sync button.
   - Read API for Phase 2: `getNode(id)`, `getChildren(parentId)` (folders first, natural name sort).
-  - Empty folders (no playable descendants) **are** cached. Phase 2 decides whether to hide them.
+  - Each folder gets `sessionCount` (playable files anywhere beneath it) during sync. `getChildren()` hides
+    folders whose count is 0. Video `durationMs` comes from Drive's `videoMediaMetadata`; audio has none.
+  - `CACHE_FORMAT` is stored in the sync summary. Bump it whenever sync starts computing new fields, and
+    `syncIfStale()` will rebuild older caches automatically.
+  - `getTrail(id)` returns the folders from just below the root down to `id` (for breadcrumbs).
+    `getDownloadedIds()` returns the keys in `mediaBlobs` (for "Downloaded" badges).
 - **Settings** (`pages/settings/`): connect/reconnect/disconnect, library folder via pasted link or the
   `FolderPickerComponent` modal (browses the user's own Drive from `root`; shared folders are set by pasting a link),
   sync status/progress, clear library cache. "Clear downloads" is a placeholder until Phase 4.
 - **Tests**: `fake-indexeddb/auto` is loaded in `src/test-setup.ts`; `library.service.spec.ts` shows the pattern
   (fake `DriveApiService` + real `DbService`, `deleteDB` between tests).
+
+## 9. Explore UI (Phase 2, as built)
+
+- **`pages/explore/`** (`/tabs/explore`): the library's top level. Folders show as a grid of category cards, and
+  any files directly in the root show as a "Sessions" list. Empty states cover: not connected, no library
+  folder, first sync running or failed, reconnect needed, and library empty. Pull-to-refresh runs `library.sync()`.
+  If a refresh fails and cached data exists, a small banner says so and the cached library stays visible
+  (works offline).
+- **`pages/category/`** (`/tabs/explore/:folderId`, `folderId` bound as a signal input): breadcrumb
+  (`Explore › …ancestors › current`, links use `NavController.navigateBack`), a gradient hero, sub-categories
+  ("Collections") and sessions. If the id is no longer in the cache it shows "This category has moved".
+- Both pages load from IndexedDB with Angular `resource()`, keyed on `library.lastSync().syncedAt`, so they
+  reload automatically when a sync finishes.
+- **`shared/category-card`**: gradient tile that links to `/tabs/explore/<id>`. Every icon
+  `categoryAppearance()` can return must be registered in its `addIcons` call.
+- **`shared/session-list`**: rows showing play button, cleaned title, "Audio"/"Video · 12 min" and a
+  Downloaded badge. Emits `(sessionSelect)` with the `DriveNode`.
+- **`shared/display.ts`**:
+  - `displayName()` strips the file extension, leading track numbers like "01 - ", and underscores. Never
+    show raw Drive names in the UI.
+  - `formatDuration()` and `sessionCountLabel()` format durations and "N sessions" labels.
+  - `categoryAppearance()` picks an icon from keywords in the name (sleep→moon, focus→bulb, …) and a
+    gradient from a hash of the id, so a category looks the same everywhere.
+- **Phase 3 hook:** `openSession()` in `explore.page.ts` and `category.page.ts` currently shows a
+  "coming soon" toast. Replace both with opening the player. The player can also save audio durations
+  it learns back into `driveCache`.

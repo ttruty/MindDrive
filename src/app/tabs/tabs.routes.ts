@@ -13,8 +13,18 @@ export const routes: Routes = [
       },
       {
         path: 'explore',
-        loadComponent: () =>
-          import('../pages/explore/explore.page').then((m) => m.ExplorePage),
+        children: [
+          {
+            path: '',
+            loadComponent: () =>
+              import('../pages/explore/explore.page').then((m) => m.ExplorePage),
+          },
+          {
+            path: ':folderId',
+            loadComponent: () =>
+              import('../pages/category/category.page').then((m) => m.CategoryPage),
+          },
+        ],
       },
       {
         path: 'downloads',

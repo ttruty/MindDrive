@@ -3,7 +3,7 @@ import { GoogleAuthService } from './google-auth.service';
 import { DriveNode, FOLDER_MIME } from './models';
 
 const API = 'https://www.googleapis.com/drive/v3';
-const FILE_FIELDS = 'id,name,mimeType,size,modifiedTime';
+const FILE_FIELDS = 'id,name,mimeType,size,modifiedTime,videoMediaMetadata(durationMillis)';
 const MAX_RETRIES = 3;
 
 interface DriveFile {
@@ -12,6 +12,7 @@ interface DriveFile {
   mimeType: string;
   size?: string;
   modifiedTime?: string;
+  videoMediaMetadata?: { durationMillis?: string };
 }
 
 interface FileList {
@@ -100,6 +101,9 @@ function toDriveNode(file: DriveFile, parentId: string | null): DriveNode {
     isFolder: file.mimeType === FOLDER_MIME,
     ...(file.size ? { sizeBytes: Number(file.size) } : {}),
     ...(file.modifiedTime ? { modifiedTime: file.modifiedTime } : {}),
+    ...(file.videoMediaMetadata?.durationMillis
+      ? { durationMs: Number(file.videoMediaMetadata.durationMillis) }
+      : {}),
   };
 }
 

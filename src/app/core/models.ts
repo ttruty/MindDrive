@@ -10,6 +10,10 @@ export interface DriveNode {
   isFolder: boolean;
   sizeBytes?: number;
   modifiedTime?: string;
+  /** Known for video (Drive videoMediaMetadata); audio durations are unknown until played. */
+  durationMs?: number;
+  /** Folders only: number of playable files anywhere beneath this folder (set during sync). */
+  sessionCount?: number;
 }
 
 /** mediaBlobs store — downloaded content (written in Phase 4). */
