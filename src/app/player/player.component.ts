@@ -49,6 +49,7 @@ import { LibraryService } from '../core/library.service';
 import { MediaSourceService, ResolvedMedia } from '../core/media-source.service';
 import { DriveNode } from '../core/models';
 import { PlaybackService } from '../core/playback.service';
+import { StreakService } from '../core/streak.service';
 import { CategoryAppearance, displayName, formatClock } from '../shared/display';
 import { DownloadButtonComponent } from '../shared/download-button/download-button.component';
 
@@ -76,6 +77,7 @@ export class PlayerComponent implements OnInit, OnDestroy {
   private readonly mediaSource = inject(MediaSourceService);
   private readonly playback = inject(PlaybackService);
   private readonly library = inject(LibraryService);
+  private readonly streak = inject(StreakService);
 
   private readonly mediaRef = viewChild<ElementRef<HTMLMediaElement>>('media');
 
@@ -104,6 +106,8 @@ export class PlayerComponent implements OnInit, OnDestroy {
   private scrubbing = false;
   private lastSavedAt = 0;
   private destroyed = false;
+  /** A session counts once toward the streak, however often it's paused and resumed. */
+  private streakRecorded = false;
 
   constructor() {
     addIcons({
@@ -239,7 +243,10 @@ export class PlayerComponent implements OnInit, OnDestroy {
   onPlay(): void {
     this.playing.set(true);
     setPlaybackState('playing');
-    // Phase 5: record today's streak entry here.
+    if (!this.streakRecorded) {
+      this.streakRecorded = true;
+      void this.streak.recordSessionStart();
+    }
   }
 
   onPause(): void {

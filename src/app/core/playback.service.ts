@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { DbService } from './db.service';
 import { PlaybackEntry } from './models';
 
@@ -11,6 +11,10 @@ const MIN_RESUME_SEC = 5;
 @Injectable({ providedIn: 'root' })
 export class PlaybackService {
   private readonly db = inject(DbService);
+  private readonly _revision = signal(0);
+
+  /** Bumps on every save. Key "Continue listening"-style displays on this. */
+  readonly revision = this._revision.asReadonly();
 
   async get(driveId: string): Promise<PlaybackEntry | undefined> {
     return (await this.db.db).get('playback', driveId);
@@ -36,6 +40,7 @@ export class PlaybackService {
       completed,
       updatedAt: new Date().toISOString(),
     });
+    this._revision.update((r) => r + 1);
   }
 
   /** Most recently played sessions first. */

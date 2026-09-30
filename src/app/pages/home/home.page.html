@@ -1,21 +1,51 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
-    <ion-title>Home</ion-title>
+    <ion-title>{{ greeting() }}</ion-title>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
   <ion-header collapse="condense">
     <ion-toolbar>
-      <ion-title size="large">Home</ion-title>
+      <ion-title size="large">{{ greeting() }}</ion-title>
     </ion-toolbar>
   </ion-header>
 
-  <section class="md-placeholder">
-    <div class="md-placeholder__orb">
-      <ion-icon name="leaf-outline" aria-hidden="true"></ion-icon>
-    </div>
-    <h2>Your daily practice</h2>
-    <p>Streak, continue listening and quick picks arrive in Phase 5.</p>
-  </section>
+  @if (data.value(); as d) {
+    @if (!library.root() && !d.hasHistory) {
+      <section class="md-placeholder">
+        <div class="md-placeholder__orb"><ion-icon name="leaf-outline" aria-hidden="true"></ion-icon></div>
+        <h2>Welcome to MindDrive</h2>
+        <p>Connect the Google Drive folder that holds your meditations to begin your practice.</p>
+        <ion-button shape="round" class="md-placeholder__action" routerLink="/tabs/settings">Get started</ion-button>
+      </section>
+    } @else {
+      <app-streak-card class="md-section home-first" [streaks]="d.streaks" [weeks]="d.weeks"></app-streak-card>
+
+      @if (d.resume; as entry) {
+        <h2 class="md-section-title">Continue listening</h2>
+        <button type="button" class="md-section resume" (click)="resume(entry)">
+          <span class="resume__play" aria-hidden="true"><ion-icon name="play"></ion-icon></span>
+          <span class="resume__text">
+            <span class="resume__title">{{ resumeTitle(entry) }}</span>
+            <span class="resume__meta">{{ resumeMeta(entry) }}</span>
+            <span class="resume__bar" aria-hidden="true">
+              <span [style.width.%]="resumeProgress(entry) * 100"></span>
+            </span>
+          </span>
+        </button>
+      }
+
+      @if (d.picks.length) {
+        <h2 class="md-section-title">Your categories</h2>
+        <div class="md-card-grid">
+          @for (category of d.picks; track category.id) {
+            <app-category-card [node]="category"></app-category-card>
+          }
+        </div>
+      }
+    }
+  } @else {
+    <div class="md-center"><ion-spinner name="crescent"></ion-spinner></div>
+  }
 </ion-content>

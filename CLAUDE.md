@@ -118,8 +118,8 @@ expose raw Drive chrome (file icons, "My Drive," etc.).
 | 2 | Explore UI: category cards from top-level folders, drill-down, session list, breadcrumbs | ✅ Done |
 | 3 | Player: audio/video playback (authenticated blob fetch), custom controls, resume position | ✅ Done |
 | 4 | Downloads: store blobs in `mediaBlobs`, prefer local blob over network, Downloads tab UI, storage usage + delete | ✅ Done |
-| 5 | Streak: `streakLog` writes on playback start, streak calc, home heatmap, "Continue listening" | ⏳ Next |
-| 6 | Polish: real icons/manifest branding, SW caching strategy, empty/loading/error states, responsive pass | |
+| 5 | Streak: `streakLog` writes on playback start, streak calc, home heatmap, "Continue listening" | ✅ Done |
+| 6 | Polish: real icons/manifest branding, SW caching strategy, empty/loading/error states, responsive pass | ⏳ Next |
 
 ## 7. Repo conventions (as built)
 
@@ -244,7 +244,8 @@ All in `src/app/core/`, `providedIn: 'root'`, state exposed as read-only signals
   - Learned durations are saved with `library.setDuration`.
   - Media Session API provides lock-screen / headset metadata and play/pause/seek actions, cleared on close.
   - Closing the player stops playback. There's no mini-player / background playback yet; candidate for Phase 6.
-  - **Phase 5 hook:** `onPlay()` has a comment marking where to record today's `streakLog` entry.
+  - The first `onPlay()` of each player instance calls `StreakService.recordSessionStart()`, so
+    pause/resume doesn't count twice.
   - Top bar has `app-download-button variant="light"`. Playback errors from `TypeError` / `!navigator.onLine`
     show "You're offline. Download sessions ahead of time…".
 - Component style budget raised to 6 kB warn / 10 kB error (`angular.json`) for the player stylesheet.
@@ -283,3 +284,30 @@ All in `src/app/core/`, `providedIn: 'root'`, state exposed as read-only signals
   memory, so it keeps playing offline until the app reloads.
 - Layering note: `DownloadsService` imports `displayName` from `shared/display.ts`, a pure helper and the only
   core → shared import.
+
+## 12. Streak & Home (Phase 5, as built)
+
+- **`core/streak.ts`** (pure functions, unit-tested):
+  - `localDateKey(date)` gives 'YYYY-MM-DD' in local time.
+  - `computeStreaks(keys, today)` returns `{ current, longest, practicedToday }`. The current streak counts
+    back from today, or from yesterday if today has no entry yet. Day maths goes through `Date.UTC`
+    day numbers, so daylight-saving changes are safe.
+  - `buildHeatmap(entries, today, weeks = 12)` returns week columns, Sunday first, the last being the
+    current week. Each cell has a `level` from 0–4 (1, 2, 3, 4+ sessions) and a `future` flag. A column
+    gets a month label when it contains the 1st–7th of a month.
+- **`core/streak.service.ts`**: `recordSessionStart(at)` increments `sessionsPlayed` for that local day in one
+  transaction. `entries()`, plus a `revision` signal.
+- **`PlaybackService.revision`** bumps on every save, and Home keys on it. Saves happen every 5 s during
+  playback, so Home re-reads a handful of IndexedDB rows while the player is open. That's cheap; revisit if not.
+- **Home** (`pages/home/`):
+  - Greeting large title (morning 5–12, afternoon 12–17, evening otherwise).
+  - `streak-card`: flame + current streak (the flame lights up once today counts), longest streak, a
+    contextual message, and the heatmap. The heatmap is `role="img"` with a summary label; cells have
+    hover titles.
+  - "Continue listening": the most recent `playback` entry that isn't completed and has `positionSec > 0`.
+    Shows a progress bar and "N min left"; tapping opens the player, which resumes.
+  - "Your categories": up to 4 top-level categories. Ones you played recently come first (ranked by the
+    first-level folder in `getTrail` of the last 20 plays); the rest follow library order.
+  - Welcome empty state when there's no library and no history.
+  - `now` refreshes on `ionViewWillEnter` and `visibilitychange`, so the date rolls over when the app is
+    reopened the next day.

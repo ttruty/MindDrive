@@ -1,0 +1,42 @@
+<section class="streak">
+  <div class="streak__top">
+    <div class="streak__current" [class.streak__current--lit]="streaks().practicedToday">
+      <ion-icon name="flame" aria-hidden="true"></ion-icon>
+      <span class="streak__number">{{ streaks().current }}</span>
+      <span class="streak__unit">day streak</span>
+    </div>
+    <div class="streak__longest">
+      <ion-icon name="trophy-outline" aria-hidden="true"></ion-icon>
+      <span>Longest {{ streaks().longest }} {{ streaks().longest === 1 ? 'day' : 'days' }}</span>
+    </div>
+  </div>
+  <p class="streak__message">{{ message() }}</p>
+
+  <div class="heatmap" role="img" [attr.aria-label]="summary()">
+    <div class="heatmap__months" aria-hidden="true">
+      @for (week of weeks(); track $index) {
+        <span>{{ week.monthLabel ?? '' }}</span>
+      }
+    </div>
+    <div class="heatmap__grid" aria-hidden="true">
+      @for (week of weeks(); track $index) {
+        @for (cell of week.cells; track cell.key) {
+          <span
+            [class]="'heatmap__cell heatmap__cell--l' + cell.level"
+            [class.heatmap__cell--future]="cell.future"
+            [title]="cell.future ? '' : cellLabel(cell.date, cell.count)"
+          ></span>
+        }
+      }
+    </div>
+    <div class="heatmap__legend" aria-hidden="true">
+      <span>Less</span>
+      <span class="heatmap__cell heatmap__cell--l0"></span>
+      <span class="heatmap__cell heatmap__cell--l1"></span>
+      <span class="heatmap__cell heatmap__cell--l2"></span>
+      <span class="heatmap__cell heatmap__cell--l3"></span>
+      <span class="heatmap__cell heatmap__cell--l4"></span>
+      <span>More</span>
+    </div>
+  </div>
+</section>
