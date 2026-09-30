@@ -8,8 +8,8 @@
 // GitHub Pages can't rewrite unknown paths to index.html, so deep links like /MindDrive/tabs/explore
 // would 404. Pages serves 404.html for those instead, so we ship a copy of index.html under that name
 // and the Angular router takes it from there. (Once installed, the service worker serves navigations.)
-import { execFileSync } from 'node:child_process';
 import { copyFileSync } from 'node:fs';
+import { runNg } from './ng-env.mjs';
 
 const OUT = 'www';
 
@@ -26,6 +26,6 @@ function resolveBaseHref() {
 const base = `/${resolveBaseHref().replace(/^\/+|\/+$/g, '')}/`.replace(/^\/\/$/, '/');
 console.log(`Building for GitHub Pages with base href ${base}`);
 
-execFileSync('npx', ['ng', 'build', '--base-href', base], { stdio: 'inherit' });
+runNg(['build', '--base-href', base]); // also injects GOOGLE_API_KEY when set
 copyFileSync(`${OUT}/index.html`, `${OUT}/404.html`);
 console.log(`Wrote ${OUT}/404.html (SPA fallback)`);

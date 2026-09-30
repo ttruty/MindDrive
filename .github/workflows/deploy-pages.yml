@@ -33,9 +33,13 @@ jobs:
 
       # Base href is derived from the repo name (/<repo>/). For a custom domain, set the repository
       # variable PAGES_BASE_HREF to "/" (Settings → Secrets and variables → Actions → Variables).
+      # GOOGLE_API_KEY (repository secret) enables shared links without sign-in. It's baked into the
+      # public bundle — Google Cloud restrictions (Drive API only, your site's referrers) protect it;
+      # the secret just keeps it out of git. Missing secret = feature off, build still succeeds.
       - run: npm run build:pages
         env:
           PAGES_BASE_HREF: ${{ vars.PAGES_BASE_HREF }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
 
       - uses: actions/configure-pages@v6
 

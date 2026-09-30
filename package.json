@@ -4,12 +4,12 @@
   "author": "Tim Truty",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
-    "build": "ng build",
+    "start": "node scripts/ng-env.mjs serve",
+    "build": "node scripts/ng-env.mjs build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "lint": "ng lint",
-    "preview": "ng build && npx -y http-server www -p 8100 -s -c-1 --proxy http://localhost:8100?",
+    "preview": "node scripts/ng-env.mjs build && npx -y http-server www -p 8100 -s -c-1 --proxy http://localhost:8100?",
     "build:pages": "node scripts/build-pages.mjs"
   },
   "private": true,

@@ -15,16 +15,22 @@ downloads and a daily streak. There's no backend; everything lives in your brows
    It isn't a secret.
 5. *(Optional — shared links without sign-in)* Create an **API key** (Credentials → Create credentials →
    API key). Restrict it: **API restrictions** → Google Drive API only; **Application restrictions** →
-   Websites, with `http://localhost:8100/*` and your site (e.g. `https://timtruty.com/*`). Put it in
-   `googleApiKey` in both environment files. The key ships in the site's JavaScript — the restrictions
-   are what keep it from being used elsewhere.
+   Websites, with `http://localhost:8100/*` and your site (e.g. `https://timtruty.com/*`).
+   **Don't commit it.** It's injected at build time from `GOOGLE_API_KEY`:
+   - **GitHub Pages:** add a repository secret `GOOGLE_API_KEY` (Settings → Secrets and variables →
+     Actions → New repository secret). The deploy workflow passes it to the build.
+   - **Locally:** copy `.env.example` to `.env.local` (git-ignored) and fill it in, then `npm start`.
+
+   The key still ends up in the site's JavaScript — browser keys can't be hidden. The Google Cloud
+   restrictions are what stop it being used elsewhere; keeping it out of git avoids GitHub's secret-scanning
+   push protection and makes rotating it a one-line secret update.
 
 With the API key set, anyone can paste a folder link shared as **“Anyone with the link”** into
 Settings → Library and listen without signing in. Private folders still need **Connect Google Drive**.
 
 ```bash
 npm install
-npm start          # dev server on http://localhost:8100 (service worker off)
+npm start          # dev server on http://localhost:8100 (service worker off; reads .env.local)
 npm run preview    # production build served on :8100 with the service worker on
 npm test           # unit tests (Vitest)
 npm run lint

@@ -441,8 +441,22 @@ All in `src/app/core/`, `providedIn: 'root'`, state exposed as read-only signals
 ## 16. Shared links without sign-in
 
 - **Why an API key:** browsers can't fetch `drive.google.com` share links (no CORS), but the Drive API
-  accepts an **API key** (`environment.googleApiKey`) for items shared "Anyone with the link". Leaving the
-  key empty turns the feature off; everything then needs sign-in, as before.
+  accepts an **API key** (`environment.googleApiKey`) for items shared "Anyone with the link". With no
+  key, the feature is off and everything needs sign-in, as before.
+- **The key is never committed.** `environment*.ts` use
+  `typeof GOOGLE_API_KEY === 'string' ? GOOGLE_API_KEY : ''`, with the global declared in
+  `src/environments/build-defines.d.ts`.
+  - `scripts/ng-env.mjs` wraps the Angular CLI and adds `--define GOOGLE_API_KEY="…"` when a key is set.
+    It reads `process.env.GOOGLE_API_KEY`, or else `.env.local` (git-ignored; template in `.env.example`).
+  - It logs only "provided" / "not set", never the value.
+  - `npm start`, `npm run build`, `preview` and `build:pages` all go through it.
+  - In CI the value comes from the repository secret `GOOGLE_API_KEY` in `deploy-pages.yml`. A missing
+    secret still builds, with the feature off.
+  - Tests run without `--define`, so `googleApiKey` is `''`. Specs that need a key set
+    `environment.googleApiKey` directly (see `drive-api.service.spec.ts`).
+  - The key is public once built (it's a browser key). Its Google Cloud restrictions (Drive API only,
+    site and localhost referrers) are the real protection. Keeping it out of git avoids the public repo's
+    secret-scanning push protection and makes rotation a secret update.
 - **Credentials in `DriveApiService.request()`:**
   - `credentials: 'auto'` (the default) uses the account's Bearer token when signed in, otherwise
     `?key=`. With neither available it throws `AuthRequiredError` before any network call.

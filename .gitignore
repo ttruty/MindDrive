@@ -68,3 +68,7 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+# Local build-time values (see .env.example)
+.env
+.env.local
