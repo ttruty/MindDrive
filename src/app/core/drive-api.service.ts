@@ -169,7 +169,7 @@ async function isRateLimited(res: Response): Promise<boolean> {
 }
 
 async function describeError(res: Response): Promise<string> {
-  if (res.status === 404) return "That folder couldn't be found, or you don't have access to it.";
+  if (res.status === 404) return "That couldn't be found in Google Drive, or you don't have access to it.";
   try {
     const body = (await res.json()) as { error?: { message?: string } };
     if (body.error?.message) return body.error.message;

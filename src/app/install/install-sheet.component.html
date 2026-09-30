@@ -1,0 +1,48 @@
+<div class="sheet">
+  <header class="sheet__head">
+    <img class="sheet__icon" src="icons/icon-192x192.png" alt="" width="64" height="64" />
+    <div>
+      <h2>Install MindDrive</h2>
+      <p>Add it to your home screen for the best experience.</p>
+    </div>
+  </header>
+
+  <ul class="sheet__perks">
+    <li><ion-icon name="expand-outline" aria-hidden="true"></ion-icon>Opens full screen, like any other app</li>
+    <li><ion-icon name="cloud-done-outline" aria-hidden="true"></ion-icon>Keeps your downloads safe for offline listening</li>
+    <li><ion-icon name="flash-outline" aria-hidden="true"></ion-icon>One tap from your home screen</li>
+  </ul>
+
+  @if (method() === 'native') {
+    <div class="sheet__actions">
+      <ion-button expand="block" shape="round" [disabled]="busy()" (click)="installNow()">Install</ion-button>
+      <ion-button expand="block" fill="clear" color="medium" (click)="later()">Not now</ion-button>
+    </div>
+  } @else {
+    <ol class="sheet__steps">
+      <li>
+        <span class="sheet__num">1</span>
+        <span>
+          Tap <strong>Share</strong>
+          <ion-icon class="sheet__glyph" name="share-outline" aria-label="Share icon"></ion-icon>
+          {{ iosChrome ? 'in the address bar' : 'in the toolbar' }}
+        </span>
+      </li>
+      <li>
+        <span class="sheet__num">2</span>
+        <span>
+          Choose <strong>Add to Home Screen</strong>
+          <ion-icon class="sheet__glyph" name="add-circle-outline" aria-hidden="true"></ion-icon>
+          <br /><small>Scroll down the list if you don’t see it.</small>
+        </span>
+      </li>
+      <li>
+        <span class="sheet__num">3</span>
+        <span>Tap <strong>Add</strong>, then open MindDrive from your home screen</span>
+      </li>
+    </ol>
+    <div class="sheet__actions">
+      <ion-button expand="block" shape="round" (click)="later()">Got it</ion-button>
+    </div>
+  }
+</div>

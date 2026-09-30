@@ -23,12 +23,15 @@ import { addIcons } from 'ionicons';
 import {
   cloudOfflineOutline,
   cloudOutline,
+  downloadOutline,
   folderOpenOutline,
   logoGoogle,
   refresh,
   trashOutline,
 } from 'ionicons/icons';
 import { DownloadsService } from '../../core/downloads.service';
+import { InstallPromptService } from '../../core/install-prompt.service';
+import { InstallLauncher } from '../../install/install-launcher.service';
 import { GoogleAuthService } from '../../core/google-auth.service';
 import { LibraryService, RootFolder } from '../../core/library.service';
 import { FolderPickerComponent } from './folder-picker/folder-picker.component';
@@ -59,6 +62,8 @@ export class SettingsPage {
   readonly auth = inject(GoogleAuthService);
   readonly library = inject(LibraryService);
   readonly downloads = inject(DownloadsService);
+  readonly install = inject(InstallPromptService);
+  readonly installLauncher = inject(InstallLauncher);
   private readonly modalCtrl = inject(ModalController);
   private readonly alertCtrl = inject(AlertController);
   private readonly toastCtrl = inject(ToastController);
@@ -68,7 +73,15 @@ export class SettingsPage {
   readonly settingRoot = signal(false);
 
   constructor() {
-    addIcons({ cloudOfflineOutline, cloudOutline, folderOpenOutline, logoGoogle, refresh, trashOutline });
+    addIcons({
+      cloudOfflineOutline,
+      cloudOutline,
+      downloadOutline,
+      folderOpenOutline,
+      logoGoogle,
+      refresh,
+      trashOutline,
+    });
   }
 
   async connect(): Promise<void> {

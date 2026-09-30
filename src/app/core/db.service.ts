@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { DBSchema, IDBPDatabase, openDB } from 'idb';
-import { DownloadedMedia, DriveNode, PlaybackEntry, StreakEntry } from './models';
+import { DownloadedMedia, DriveNode, FavoriteEntry, PlaybackEntry, StreakEntry } from './models';
 
 export interface MindDriveDB extends DBSchema {
   driveCache: {
@@ -21,10 +21,15 @@ export interface MindDriveDB extends DBSchema {
     value: PlaybackEntry;
     indexes: { updatedAt: string };
   };
+  favorites: {
+    key: string;
+    value: FavoriteEntry;
+    indexes: { addedAt: string };
+  };
 }
 
 export const DB_NAME = 'minddrive';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 /** Owns the single IndexedDB connection. Each schema version adds its stores in `upgrade`. */
 @Injectable({ providedIn: 'root' })
@@ -44,6 +49,10 @@ export class DbService {
         if (oldVersion < 2) {
           const playback = db.createObjectStore('playback', { keyPath: 'driveId' });
           playback.createIndex('updatedAt', 'updatedAt');
+        }
+        if (oldVersion < 3) {
+          const favorites = db.createObjectStore('favorites', { keyPath: 'driveId' });
+          favorites.createIndex('addedAt', 'addedAt');
         }
       },
       // Another context (a tab running a newer version, or a delete) needs this connection gone.

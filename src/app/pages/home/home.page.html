@@ -36,6 +36,18 @@
         </button>
       }
 
+      @if (favoritesPreview.value(); as fav) {
+        @if (fav.total) {
+          <div class="md-section-title home-heading">
+            <h2>Favorites</h2>
+            <a routerLink="/tabs/home/favorites" routerDirection="forward">
+              {{ fav.total > fav.nodes.length ? 'See all ' + fav.total : 'See all' }}
+            </a>
+          </div>
+          <app-session-list class="md-section" [sessions]="fav.nodes" (sessionSelect)="openFavorite($event)"></app-session-list>
+        }
+      }
+
       @if (d.picks.length) {
         <h2 class="md-section-title">Your categories</h2>
         <div class="md-card-grid">

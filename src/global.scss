@@ -172,3 +172,16 @@ ion-modal.md-player-modal {
   --height: 100%;
   --border-radius: 0;
 }
+
+// Install sheet: sized to its content (Ionic "auto height" sheet pattern).
+ion-modal.md-install-sheet {
+  --height: auto;
+  --border-radius: 24px;
+  --max-width: 520px;
+
+  .ion-page {
+    position: relative;
+    display: block;
+    contain: content;
+  }
+}

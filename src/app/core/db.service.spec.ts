@@ -19,7 +19,7 @@ describe('DbService', () => {
 
     // The service reopens on next use.
     const db = await service.db;
-    expect([...db.objectStoreNames].sort()).toEqual(['driveCache', 'mediaBlobs', 'playback', 'streakLog']);
+    expect([...db.objectStoreNames].sort()).toEqual(['driveCache', 'favorites', 'mediaBlobs', 'playback', 'streakLog']);
     db.close();
   });
 });

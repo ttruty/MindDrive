@@ -53,6 +53,18 @@ export interface PlaybackEntry {
   updatedAt: string;
 }
 
+/** favorites store (DB v3) — sessions the listener hearted. Self-contained so it renders offline. */
+export interface FavoriteEntry {
+  driveId: string;
+  name: string;
+  mimeType: string;
+  parentId: string | null;
+  folderPath: string;
+  durationMs?: number;
+  /** ISO timestamp; indexed, newest first in lists. */
+  addedAt: string;
+}
+
 /** streakLog store — one entry per local calendar day with any playback (Phase 5). */
 export interface StreakEntry {
   date: string;

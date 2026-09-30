@@ -9,6 +9,7 @@
         </span>
         <ion-ripple-effect></ion-ripple-effect>
       </button>
+      <app-favorite-button [node]="session"></app-favorite-button>
       @if (network.online() || downloads.ids().has(session.id)) {
         <app-download-button [node]="session"></app-download-button>
       }

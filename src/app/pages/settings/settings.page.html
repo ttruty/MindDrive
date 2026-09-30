@@ -123,6 +123,17 @@
     }
   </section>
 
+  @if (install.method()) {
+    <ion-list-header>App</ion-list-header>
+    <ion-list inset lines="none" class="md-list">
+      <ion-item button detail="false" (click)="installLauncher.show()">
+        <ion-icon slot="start" name="download-outline" color="primary" aria-hidden="true"></ion-icon>
+        <ion-label>Install MindDrive</ion-label>
+        <ion-note slot="end">Add to home screen</ion-note>
+      </ion-item>
+    </ion-list>
+  }
+
   <!-- Storage -->
   <ion-list-header>Storage</ion-list-header>
   <ion-list inset lines="none" class="md-list">

@@ -1,9 +1,19 @@
 import { Component, DestroyRef, computed, inject, resource, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { IonButton, IonContent, IonHeader, IonIcon, IonSpinner, IonTitle, IonToolbar } from '@ionic/angular';
+import {
+  IonButton,
+  IonContent,
+  IonHeader,
+  IonIcon,
+  IonRouterLinkWithHref,
+  IonSpinner,
+  IonTitle,
+  IonToolbar,
+} from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { leafOutline, play } from 'ionicons/icons';
 import { LibraryService } from '../../core/library.service';
+import { FavoritesService } from '../../core/favorites.service';
 import { DriveNode, PlaybackEntry } from '../../core/models';
 import { PlaybackService } from '../../core/playback.service';
 import { buildHeatmap, computeStreaks, localDateKey } from '../../core/streak';
@@ -12,10 +22,13 @@ import { PlayerLauncher } from '../../player/player-launcher.service';
 import { CategoryCardComponent } from '../../shared/category-card/category-card.component';
 import { displayName, formatDuration } from '../../shared/display';
 import { LoadErrorComponent } from '../../shared/load-error/load-error.component';
+import { SessionListComponent } from '../../shared/session-list/session-list.component';
 import { StreakCardComponent } from './streak-card/streak-card.component';
 
 /** How many quick-pick categories Home shows. */
 const QUICK_PICKS = 4;
+/** Favorites previewed on Home before "See all". */
+const FAVORITES_PREVIEW = 3;
 
 @Component({
   selector: 'app-home',
@@ -23,6 +36,7 @@ const QUICK_PICKS = 4;
   styleUrls: ['home.page.scss'],
   imports: [
     RouterLink,
+    IonRouterLinkWithHref,
     IonHeader,
     IonToolbar,
     IonTitle,
@@ -33,6 +47,7 @@ const QUICK_PICKS = 4;
     StreakCardComponent,
     CategoryCardComponent,
     LoadErrorComponent,
+    SessionListComponent,
   ],
 })
 export class HomePage {
@@ -40,6 +55,7 @@ export class HomePage {
   private readonly playback = inject(PlaybackService);
   private readonly streak = inject(StreakService);
   private readonly player = inject(PlayerLauncher);
+  private readonly favorites = inject(FavoritesService);
 
   /** "Now", refreshed when the page or app comes back into view so the day rolls over. */
   private readonly now = signal(new Date());
@@ -70,6 +86,19 @@ export class HomePage {
     },
   });
 
+  /** Separate from `data` so hearting a session doesn't recompute streaks. */
+  readonly favoritesPreview = resource({
+    params: () => ({ revision: this.favorites.revision(), library: this.library.revision() }),
+    loader: async () => {
+      const list = await this.favorites.listAsNodes();
+      return {
+        total: list.length,
+        nodes: list.slice(0, FAVORITES_PREVIEW).map((i) => i.node),
+        folderPaths: new Map(list.map((i) => [i.node.id, i.folderPath])),
+      };
+    },
+  });
+
   constructor() {
     addIcons({ leafOutline, play });
     const onVisible = () => {
@@ -95,6 +124,10 @@ export class HomePage {
     const left = entry.durationSec ? entry.durationSec - entry.positionSec : 0;
     const remaining = left > 0 ? `${formatDuration(left * 1000)} left` : '';
     return [entry.folderPath, remaining].filter(Boolean).join(' · ');
+  }
+
+  openFavorite(node: DriveNode): void {
+    void this.player.open(node, this.favoritesPreview.value()?.folderPaths.get(node.id) ?? '');
   }
 
   async resume(entry: PlaybackEntry): Promise<void> {

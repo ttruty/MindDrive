@@ -2,6 +2,7 @@ import { Component, effect, inject } from '@angular/core';
 import { IonApp, IonRouterOutlet, ToastController } from '@ionic/angular';
 import { AppUpdateService } from './core/app-update.service';
 import { DownloadsService } from './core/downloads.service';
+import { InstallLauncher } from './install/install-launcher.service';
 import { GoogleAuthService } from './core/google-auth.service';
 import { LibraryService } from './core/library.service';
 
@@ -18,6 +19,7 @@ export class AppComponent {
 
   constructor() {
     inject(AppUpdateService).init();
+    inject(InstallLauncher).offerOnLaunch();
     void this.restoreSession();
 
     // Downloads run in the background (often several at once), so failures surface app-wide.

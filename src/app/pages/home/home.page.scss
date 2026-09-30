@@ -2,6 +2,24 @@
   margin-top: 8px;
 }
 
+.home-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+
+  h2 {
+    margin: 0;
+    font: inherit;
+  }
+
+  a {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--ion-color-primary);
+    text-decoration: none;
+  }
+}
+
 .resume {
   display: flex;
   align-items: center;

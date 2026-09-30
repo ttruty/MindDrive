@@ -20,7 +20,7 @@ Single user, single Google account, no backend — everything lives client-side 
 - **Drive API v3**: `files.list` (walk folder tree via `parents` + `mimeType` queries), `files.get?alt=media` for content
 - **Offline storage**: IndexedDB via the `idb` library — object stores: `driveCache` (folder/file metadata),
   `mediaBlobs` (downloaded audio/video blobs + metadata), `streakLog` (date strings of days with activity),
-  `playback` (resume positions + recently played, added in DB v2 / Phase 3)
+  `playback` (resume positions + recently played, added in DB v2 / Phase 3), `favorites` (DB v3)
 - **Playback**: native `<video>`/`<audio>` with a custom control bar; blob URLs for downloaded content,
   fetch + Blob URL (with `Authorization: Bearer <token>`) for streamed content — Drive's `alt=media`
   endpoint needs the auth header, so a plain `src=url` won't work
@@ -147,7 +147,8 @@ expose raw Drive chrome (file icons, "My Drive," etc.).
 All in `src/app/core/`, `providedIn: 'root'`, state exposed as read-only signals.
 
 - **`models.ts`** — `DriveNode`, `DownloadedMedia`, `StreakEntry`, `FOLDER_MIME`, `isPlayableMime()`.
-- **`db.service.ts`** — single `idb` connection to DB `minddrive`, currently **v2**. v1: `driveCache` (keyPath `id`,
+- **`db.service.ts`** — single `idb` connection to DB `minddrive`, currently **v3** (v3 adds `favorites`, keyPath
+  `driveId`, index `addedAt`). v1: `driveCache` (keyPath `id`,
   index `parentId`), `mediaBlobs` (keyPath `driveId`), `streakLog` (keyPath `date`). v2: `playback` (keyPath
   `driveId`, index `updatedAt`). For schema changes, bump `DB_VERSION` and add an `if (oldVersion < N)` block.
   Never edit an earlier block.
@@ -396,3 +397,43 @@ All in `src/app/core/`, `providedIn: 'root'`, state exposed as read-only signals
   Specs that use IndexedDB should `deleteDB` in `beforeEach` and close the connection in `afterEach`.
   `DbService`'s `blocking` handler keeps a leaked connection from hanging other files (that was the
   first CI failure).
+
+## 15. Favorites & install prompt (post-spec features)
+
+### Favorites
+- **Storage:** the `favorites` store (DB v3) holds `FavoriteEntry { driveId, name, mimeType, parentId,
+  folderPath, durationMs?, addedAt }`. Each entry carries enough to render and play offline, even after
+  a library cache clear.
+- **`core/favorites.service.ts`:**
+  - Signals: `ids` (Set) and `revision`.
+  - Actions: `toggle(node)`, `add`, `remove`, `list()` (newest first), and `listAsNodes()`, which prefers
+    the cached `DriveNode` and falls back to the entry.
+  - Changes wait for the startup load (`ready`), so a quick first tap can't be overwritten by it.
+- **`shared/favorite-button`:** heart toggle with `aria-pressed`, a pop animation, and `variant="light"`
+  for the player. It sits in every session row (before the download button) and in the player's top bar.
+- **Home** has a "Favorites" section: the 3 newest, plus "See all" → `/tabs/home/favorites`
+  (`pages/favorites/`, stacked in the Home tab, with an empty state). It uses its own `resource()`, so
+  toggling a heart doesn't recompute streaks.
+
+### Install prompt
+- **`core/install-prompt.service.ts`:**
+  - `platform` is ios, android or other; iPadOS reporting as a Mac is caught via `maxTouchPoints`.
+  - `isMobile` covers phones and tablets.
+  - `installed` means display-mode standalone, `navigator.standalone`, or a remembered `appinstalled` /
+    accepted prompt.
+  - `method()` is `'native'` once Chromium fires `beforeinstallprompt` (captured with `preventDefault` to
+    hide Chrome's mini-infobar), `'ios-manual'` on iOS, otherwise `null`.
+  - `shouldOfferOnLaunch()`: mobile, a method is available, and not snoozed. "Not now" / "Got it"
+    snooze it for 7 days (`md.install.snoozedUntil`).
+- **`install/install-launcher.service.ts`:**
+  - `offerOnLaunch()` (from `AppComponent`) waits 2.5 s, then shows the sheet once per launch.
+  - If `beforeinstallprompt` arrives in the first 60 s, it's offered then.
+  - Never shown over the player.
+  - `show()` opens it on demand from Settings → App → "Install MindDrive"; that item only appears when
+    install is possible.
+- **`install/install-sheet.component`:** auto-height bottom sheet (`md-install-sheet` in global.scss) with the
+  icon, three benefits, and either **Install** (native prompt) or iOS steps. The Share button is described
+  as "in the address bar" for Chrome on iOS (`CriOS`).
+- **Not covered:** Firefox Android and other browsers without `beforeinstallprompt` get no prompt, rather
+  than nagging people who may already have it installed. There's no reliable way to detect an existing
+  install from a browser tab.

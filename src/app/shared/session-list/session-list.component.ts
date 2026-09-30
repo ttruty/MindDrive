@@ -7,13 +7,14 @@ import { DriveNode } from '../../core/models';
 import { NetworkService } from '../../core/network.service';
 import { displayName, formatDuration } from '../display';
 import { DownloadButtonComponent } from '../download-button/download-button.component';
+import { FavoriteButtonComponent } from '../favorite-button/favorite-button.component';
 
-/** A list of playable sessions with per-row download toggles. Emits `sessionSelect` on tap. */
+/** A list of playable sessions with per-row favorite + download toggles. Emits `sessionSelect` on tap. */
 @Component({
   selector: 'app-session-list',
   templateUrl: 'session-list.component.html',
   styleUrls: ['session-list.component.scss'],
-  imports: [IonIcon, IonRippleEffect, DownloadButtonComponent],
+  imports: [IonIcon, IonRippleEffect, DownloadButtonComponent, FavoriteButtonComponent],
 })
 export class SessionListComponent {
   readonly sessions = input.required<DriveNode[]>();

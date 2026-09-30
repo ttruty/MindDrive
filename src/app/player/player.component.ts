@@ -52,6 +52,7 @@ import { PlaybackService } from '../core/playback.service';
 import { StreakService } from '../core/streak.service';
 import { CategoryAppearance, displayName, formatClock } from '../shared/display';
 import { DownloadButtonComponent } from '../shared/download-button/download-button.component';
+import { FavoriteButtonComponent } from '../shared/favorite-button/favorite-button.component';
 
 /** Seconds jumped by the skip buttons and lock-screen seek actions. */
 const SKIP_SEC = 15;
@@ -65,7 +66,15 @@ type Status = 'loading' | 'ready' | 'error';
   selector: 'app-player',
   templateUrl: 'player.component.html',
   styleUrls: ['player.component.scss'],
-  imports: [IonContent, IonButton, IonIcon, IonRange, IonProgressBar, DownloadButtonComponent],
+  imports: [
+    IonContent,
+    IonButton,
+    IonIcon,
+    IonRange,
+    IonProgressBar,
+    DownloadButtonComponent,
+    FavoriteButtonComponent,
+  ],
 })
 export class PlayerComponent implements OnInit, OnDestroy {
   readonly node = input.required<DriveNode>();
