@@ -40,7 +40,11 @@ and copies `index.html` to `404.html`. Pages has no SPA rewrites, so deep links 
 `/<repo>/tabs/explore` are served by `404.html` (HTTP 404 status, but the app loads normally); once
 installed, the service worker serves them from cache.
 
-- **Custom domain** (served at `/`): set the repository variable `PAGES_BASE_HREF` to `/`
+- **Your user site has a custom domain** (e.g. `ttruty.github.io` → `timtruty.com`): project sites inherit it,
+  so the app lives at `https://timtruty.com/MindDrive/`. The base href stays `/MindDrive/`; the OAuth origin
+  to add is `https://timtruty.com`. Make sure **Enforce HTTPS** is on — service workers and Google sign-in
+  need HTTPS.
+- **Custom domain on this repo itself** (served at `/`): set the repository variable `PAGES_BASE_HREF` to `/`
   (Settings → Secrets and variables → Actions → Variables), and add that domain as an OAuth origin.
 - **Build locally for Pages**: `npm run build:pages -- --base-href=/MindDrive/` → `www/`.
 - Pages sites are public even from a private repo (which needs a paid plan). Nobody can see your library

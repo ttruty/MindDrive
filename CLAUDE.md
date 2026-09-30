@@ -151,6 +151,9 @@ All in `src/app/core/`, `providedIn: 'root'`, state exposed as read-only signals
   index `parentId`), `mediaBlobs` (keyPath `driveId`), `streakLog` (keyPath `date`). v2: `playback` (keyPath
   `driveId`, index `updatedAt`). For schema changes, bump `DB_VERSION` and add an `if (oldVersion < N)` block.
   Never edit an earlier block.
+  - `blocking` closes the connection when another context deletes or upgrades the DB (e.g. a tab on a newer
+    version), and `terminated` handles abnormal closes. Both reset the promise so the next access reopens.
+    Without the `blocking` handler, `deleteDB` / upgrades hang while any connection is open.
 - **`google-auth.service.ts`** — GIS token client, loads `accounts.google.com/gsi/client` lazily.
   - `status`: `unconfigured` (no client ID) → `initializing` → `signed-out` | `reconnect` | `signed-in`.
   - Token is in memory only. localStorage keeps `md.auth.consented` + `md.auth.hint` (email, used as `login_hint`).
@@ -385,4 +388,11 @@ All in `src/app/core/`, `providedIn: 'root'`, state exposed as read-only signals
 - Checked with a local Pages emulation (build under `/MindDrive/`, no rewrites, root `404.html`). All of these
   worked: cold deep link via `404.html`, tab navigation and keyboard, SW scope `/MindDrive/`, manifest with
   no errors, and an offline deep link served by the SW.
-- OAuth: add `https://<user>.github.io` (origin only) to the client's Authorized JavaScript origins.
+- OAuth: add the site's origin only (no path) to the client's Authorized JavaScript origins. For this
+  project the user site `ttruty.github.io` has the custom domain `timtruty.com`, so the app is served at
+  `https://timtruty.com/MindDrive/` and the origin is `https://timtruty.com`.
+- **Tests share one environment**: Angular's Vitest runner defaults to `isolate: false`, so every spec file
+  shares the same jsdom, localStorage and fake IndexedDB, and file order varies (CI has no timing cache).
+  Specs that use IndexedDB should `deleteDB` in `beforeEach` and close the connection in `afterEach`.
+  `DbService`'s `blocking` handler keeps a leaked connection from hanging other files (that was the
+  first CI failure).

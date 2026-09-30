@@ -46,6 +46,16 @@ export class DbService {
           playback.createIndex('updatedAt', 'updatedAt');
         }
       },
+      // Another context (a tab running a newer version, or a delete) needs this connection gone.
+      // Close it so they aren't blocked forever; the next `db` access reopens.
+      blocking: (_current, _blocked, event) => {
+        (event.target as IDBDatabase).close();
+        this.dbPromise = undefined;
+      },
+      // The browser closed the connection abnormally (e.g. storage cleared): reopen on next access.
+      terminated: () => {
+        this.dbPromise = undefined;
+      },
     });
     return this.dbPromise;
   }
