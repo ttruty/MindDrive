@@ -15,6 +15,7 @@ import {
   IonNote,
   IonSpinner,
   IonTitle,
+  IonToggle,
   IonToolbar,
   ModalController,
   ToastController,
@@ -37,6 +38,7 @@ import { InstallPromptService } from '../../core/install-prompt.service';
 import { InstallLauncher } from '../../install/install-launcher.service';
 import { plural } from '../../shared/display';
 import { GoogleAuthService } from '../../core/google-auth.service';
+import { HabitsService } from '../../core/habits.service';
 import { LibraryService, RootFolder } from '../../core/library.service';
 import { FolderPickerComponent } from './folder-picker/folder-picker.component';
 
@@ -60,6 +62,7 @@ import { FolderPickerComponent } from './folder-picker/folder-picker.component';
     IonIcon,
     IonAvatar,
     IonSpinner,
+    IonToggle,
   ],
 })
 export class SettingsPage {
@@ -69,6 +72,7 @@ export class SettingsPage {
   readonly drive = inject(DriveApiService);
   readonly install = inject(InstallPromptService);
   readonly installLauncher = inject(InstallLauncher);
+  readonly habits = inject(HabitsService);
   private readonly modalCtrl = inject(ModalController);
   private readonly alertCtrl = inject(AlertController);
   private readonly toastCtrl = inject(ToastController);
@@ -119,6 +123,22 @@ export class SettingsPage {
     await modal.present();
     const { data, role } = await modal.onWillDismiss<RootFolder>();
     if (role === 'select' && data) await this.changeRoot(() => this.library.setRoot(data.id));
+  }
+
+  /** One line on how reporting is going; empty when there's nothing to say. */
+  habitsStatus(): string {
+    switch (this.habits.status()) {
+      case 'token':
+        return 'Habits didn’t accept the token. Make a new one in Habits → Sources and paste it here.';
+      case 'retrying':
+        return 'Couldn’t reach Habits. Finished sessions wait here and are sent when it’s back.';
+      case 'sending':
+        return 'Sending…';
+      case 'idle':
+        return 'Up to date.';
+      default:
+        return '';
+    }
   }
 
   sync(): void {

@@ -139,6 +139,50 @@
     }
   </section>
 
+  <!-- Habits scorecard (§17) -->
+  <ion-list-header>Habits</ion-list-header>
+  <section class="md-card">
+    <ion-toggle
+      justify="space-between"
+      [checked]="habits.enabled()"
+      (ionChange)="habits.update({ enabled: $any($event).detail.checked })"
+      >Report finished sessions</ion-toggle
+    >
+    <p class="md-muted md-small md-hint">
+      Off by default. When on, MindDrive sends each session you finish (its length, name and folder)
+      to your Habits scorecard at the address below. Nothing else leaves this device, and nothing is
+      sent while this is off.
+    </p>
+    @if (habits.enabled()) {
+      <ion-input
+        class="md-input"
+        fill="outline"
+        label="Ingest URL"
+        labelPlacement="stacked"
+        type="url"
+        inputmode="url"
+        placeholder="https://…/functions/v1/ingest"
+        [value]="habits.url()"
+        (ionInput)="habits.update({ url: $any($event).detail.value ?? '' })"
+      ></ion-input>
+      <ion-input
+        class="md-input"
+        fill="outline"
+        label="Token"
+        labelPlacement="stacked"
+        type="password"
+        autocomplete="off"
+        placeholder="hab_…"
+        [value]="habits.token()"
+        (ionInput)="habits.update({ token: $any($event).detail.value ?? '' })"
+      ></ion-input>
+      <p class="md-muted md-small md-hint">From Habits → Sources → Connect an app → MindDrive.</p>
+      @if (habitsStatus(); as status) {
+        <p class="md-small" role="status">{{ status }}</p>
+      }
+    }
+  </section>
+
   @if (install.method()) {
     <ion-list-header>App</ion-list-header>
     <ion-list inset lines="none" class="md-list">

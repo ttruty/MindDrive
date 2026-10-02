@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { deleteDB } from 'idb';
 import { DB_NAME, DbService } from './db.service';
+import { HabitsService } from './habits.service';
 import { PlaybackService } from './playback.service';
 
 const base = {
@@ -53,5 +54,24 @@ describe('PlaybackService', () => {
 
     expect((await service.recent()).map((e) => e.driveId)).toEqual(['a', 'b']);
     expect(await service.recent(1)).toHaveLength(1);
+  });
+
+  it('reports a session to Habits once, when it first finishes', async () => {
+    const report = vi.spyOn(TestBed.inject(HabitsService), 'reportCompleted');
+    await service.save({ ...base, positionSec: 300, durationSec: 600 });
+    expect(report).not.toHaveBeenCalled();
+
+    await service.save({ ...base, positionSec: 595, durationSec: 600 });
+    expect(report).toHaveBeenCalledTimes(1);
+    expect(report.mock.calls[0][0]).toMatchObject({ driveId: 's1', completed: true });
+
+    // Saving the finished session again isn't another completion…
+    await service.save({ ...base, positionSec: 0, durationSec: 600, completed: true });
+    expect(report).toHaveBeenCalledTimes(1);
+
+    // …but playing it through again is.
+    await service.save({ ...base, positionSec: 100, durationSec: 600 });
+    await service.save({ ...base, positionSec: 598, durationSec: 600 });
+    expect(report).toHaveBeenCalledTimes(2);
   });
 });

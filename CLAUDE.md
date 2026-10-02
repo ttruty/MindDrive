@@ -483,3 +483,23 @@ All in `src/app/core/`, `providedIn: 'root'`, state exposed as read-only signals
   - The library shows "Shared link · works without signing in" or "Your Google account".
 - **Checked in Chrome** (Google mocked, placeholder key): signed-out set-up via a link with a resourcekey,
   sync, browse, stream, download, relaunch, and the private-folder error. Every request used only the key.
+
+## 17. Habits reporting (opt-in)
+
+MindDrive can report finished sessions to the owner's **Habits** scorecard (`../Habits`, served at
+`timtruty.com/Habits/`). It is **off by default**, and nothing is queued or sent until the listener
+turns it on in Settings → Habits and pastes the ingest URL and token from Habits → Sources → Connect
+an app → MindDrive.
+
+- `core/habits-reporter.ts` is a **copy** of `Habits/clients/habits-reporter.ts`. Change the master
+  copy there first, then copy it here again. Don't edit it in place.
+- `core/habits.service.ts` holds the settings (`localStorage` key `minddrive.habits.v1`) and turns a
+  finished `PlaybackEntry` into a `meditation.completed` event: `externalId = <driveId>:<localDate>`
+  (one per session per day), value = `durationSec` in seconds, meta = `{ folderPath, name }`.
+  The reporter's queue lives in `localStorage` (`habits.queue.v1`).
+- `PlaybackService.save()` reports when `completed` flips from false to true. Re-saving a finished
+  session doesn't count again; playing it through again does (and on the same day, Habits drops it as
+  a duplicate).
+- MindDrive reports facts only. Whether a session "counts" is decided by the habit's rule in Habits.
+- What leaves the device when on: each finished session's length, file name, folder path and time.
+  The Settings text says so next to the toggle; keep it accurate if the event changes.

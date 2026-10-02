@@ -1,5 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { DbService } from './db.service';
+import { HabitsService } from './habits.service';
 import { PlaybackEntry } from './models';
 
 /** Positions within this many seconds of the end count as finished. */
@@ -11,6 +12,7 @@ const MIN_RESUME_SEC = 5;
 @Injectable({ providedIn: 'root' })
 export class PlaybackService {
   private readonly db = inject(DbService);
+  private readonly habits = inject(HabitsService);
   private readonly _revision = signal(0);
 
   /** Bumps on every save. Key "Continue listening"-style displays on this. */
@@ -34,13 +36,18 @@ export class PlaybackService {
     const nearEnd =
       !!entry.durationSec && entry.positionSec >= entry.durationSec - COMPLETE_WITHIN_SEC;
     const completed = entry.completed ?? nearEnd;
-    await (await this.db.db).put('playback', {
+    const db = await this.db.db;
+    const wasCompleted = (await db.get('playback', entry.driveId))?.completed ?? false;
+    const saved: PlaybackEntry = {
       ...entry,
       positionSec: completed ? 0 : entry.positionSec,
       completed,
       updatedAt: new Date().toISOString(),
-    });
+    };
+    await db.put('playback', saved);
     this._revision.update((r) => r + 1);
+    // Finishing a session is a completion for Habits (§17); later saves of a finished one aren't.
+    if (completed && !wasCompleted) this.habits.reportCompleted(saved);
   }
 
   /** Most recently played sessions first. */
