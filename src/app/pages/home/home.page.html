@@ -20,7 +20,45 @@
         <ion-button shape="round" class="md-placeholder__action" routerLink="/tabs/settings">Get started</ion-button>
       </section>
     } @else {
-      <app-streak-card class="md-section home-first" [streaks]="d.streaks" [weeks]="d.weeks"></app-streak-card>
+      @if (current(); as cur) {
+        <h2 class="md-section-title home-current-title">Current category</h2>
+        <section class="md-section current" [style.background]="cur.appearance.background">
+          <a class="current__head" [routerLink]="['/tabs/explore', cur.node.id]" routerDirection="forward">
+            <span class="current__icon"><ion-icon [name]="cur.appearance.icon" aria-hidden="true"></ion-icon></span>
+            <span class="current__text">
+              <span class="current__title">{{ cur.title }}</span>
+              <span class="current__meta">
+                {{ cur.progress.allDone ? 'All ' + cur.progress.total + ' sessions done' : cur.progress.done + ' of ' + cur.progress.total + ' done' }}
+              </span>
+            </span>
+            <ion-icon class="current__chevron" name="chevron-forward" aria-hidden="true"></ion-icon>
+          </a>
+          <div
+            class="current__bar"
+            role="progressbar"
+            aria-label="Sessions completed"
+            [attr.aria-valuenow]="cur.progress.done"
+            aria-valuemin="0"
+            [attr.aria-valuemax]="cur.progress.total"
+          >
+            <span [style.width.%]="cur.progress.fraction * 100"></span>
+          </div>
+          <button type="button" class="current__next" (click)="playCurrent(cur.playTarget)">
+            <span class="current__play" aria-hidden="true"><ion-icon name="play"></ion-icon></span>
+            <span class="current__next-text">
+              <span class="current__next-label">{{ cur.progress.allDone ? 'Start again' : 'Up next' }}</span>
+              <span class="current__next-title">
+                {{ sessionTitle(cur.playTarget) }}
+                @if (sessionLength(cur.playTarget); as len) {
+                  · {{ len }}
+                }
+              </span>
+            </span>
+          </button>
+        </section>
+      }
+
+      <app-streak-card class="md-section" [class.home-first]="!current()" [streaks]="d.streaks" [weeks]="d.weeks"></app-streak-card>
 
       @if (d.resume; as entry) {
         <h2 class="md-section-title">Continue listening</h2>

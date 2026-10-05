@@ -67,6 +67,31 @@ describe('CategoryPage', () => {
     expect(crumbs(el)).toEqual(['Explore', 'Sleep', 'Deep Rest']);
   });
 
+  it('marks finished sessions, shows progress and sets the current category', async () => {
+    const db = await TestBed.inject(DbService).db;
+    await db.put('playback', {
+      driveId: 'a', name: 'a.mp3', mimeType: 'audio/mpeg', parentId: 'deep', folderPath: 'Sleep / Deep Rest',
+      positionSec: 0, durationSec: 60, completed: true, timesCompleted: 1, updatedAt: new Date().toISOString(),
+    });
+    const el = await render('sleep');
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      expect(el.querySelector('.hero p')?.textContent).toContain('1 done');
+    });
+    expect(el.querySelector('.hero__progress')).not.toBeNull();
+    // 'wind' isn't done, so its row has a play icon, not a check
+    expect(el.querySelector('.row__play--done')).toBeNull();
+    expect(el.querySelector('app-category-card .card__count')?.textContent).toContain('1 done');
+
+    const pill = [...el.querySelectorAll<HTMLButtonElement>('.hero__pill--button')].find((b) =>
+      b.textContent?.includes('Set as current'),
+    )!;
+    pill.click();
+    fixture.detectChanges();
+    expect(pill.textContent).toContain('Current category');
+    expect(JSON.parse(localStorage.getItem('md.currentCategory')!)).toMatchObject({ id: 'sleep' });
+  });
+
   it('explains when the category is no longer in the library', async () => {
     const el = await render('missing');
     expect(el.textContent).toContain('This category has moved');

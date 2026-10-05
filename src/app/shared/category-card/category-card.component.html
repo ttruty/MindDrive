@@ -4,7 +4,12 @@
   routerDirection="forward"
   [style.background]="appearance().background"
 >
-  <span class="card__icon"><ion-icon [name]="appearance().icon" aria-hidden="true"></ion-icon></span>
+  <span class="card__top">
+    <span class="card__icon"><ion-icon [name]="appearance().icon" aria-hidden="true"></ion-icon></span>
+    @if (isCurrent()) {
+      <span class="card__badge">Current</span>
+    }
+  </span>
   <span class="card__text">
     <span class="card__title">{{ title() }}</span>
     @if (countLabel()) {

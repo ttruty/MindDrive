@@ -58,6 +58,16 @@
   }
 }
 
+.row__play--done {
+  background: color-mix(in srgb, var(--ion-color-secondary) 16%, var(--md-surface));
+  color: var(--ion-color-secondary);
+  font-size: 20px;
+
+  ion-icon {
+    margin-inline-start: 0;
+  }
+}
+
 .row__text {
   display: flex;
   flex-direction: column;

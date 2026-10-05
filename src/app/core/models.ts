@@ -49,8 +49,14 @@ export interface PlaybackEntry {
   folderPath: string;
   positionSec: number;
   durationSec?: number;
-  /** True once the session played to the end; the next play starts over. */
+  /** True once the session played to the end; the next play starts over. Resets on a partial replay. */
   completed: boolean;
+  /**
+   * How many times it's been played to the end. Unlike `completed`, this never resets, so it's what
+   * "done" marks use. Missing on entries from before it existed: treat `completed` as one.
+   */
+  timesCompleted?: number;
+  lastCompletedAt?: string;
   /** ISO timestamp of the last position write. */
   updatedAt: string;
 }

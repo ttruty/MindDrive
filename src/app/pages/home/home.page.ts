@@ -11,8 +11,10 @@ import {
   IonToolbar,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { leafOutline, play } from 'ionicons/icons';
+import { chevronForward, leafOutline, play } from 'ionicons/icons';
 import { LibraryService } from '../../core/library.service';
+import { collectionProgress } from '../../core/collection-progress';
+import { CurrentCategoryService } from '../../core/current-category.service';
 import { FavoritesService } from '../../core/favorites.service';
 import { DriveNode, PlaybackEntry } from '../../core/models';
 import { PlaybackService } from '../../core/playback.service';
@@ -20,7 +22,7 @@ import { buildHeatmap, computeStreaks, localDateKey } from '../../core/streak';
 import { StreakService } from '../../core/streak.service';
 import { PlayerLauncher } from '../../player/player-launcher.service';
 import { CategoryCardComponent } from '../../shared/category-card/category-card.component';
-import { displayName, formatDuration } from '../../shared/display';
+import { categoryAppearance, displayName, formatDuration } from '../../shared/display';
 import { LoadErrorComponent } from '../../shared/load-error/load-error.component';
 import { SessionListComponent } from '../../shared/session-list/session-list.component';
 import { StreakCardComponent } from './streak-card/streak-card.component';
@@ -56,6 +58,7 @@ export class HomePage {
   private readonly streak = inject(StreakService);
   private readonly player = inject(PlayerLauncher);
   private readonly favorites = inject(FavoritesService);
+  private readonly currentCategory = inject(CurrentCategoryService);
 
   /** "Now", refreshed when the page or app comes back into view so the day rolls over. */
   private readonly now = signal(new Date());
@@ -86,6 +89,35 @@ export class HomePage {
     },
   });
 
+  /** The category the listener set as current, with every session beneath it (in browse order). */
+  private readonly currentContents = resource({
+    params: () => {
+      const id = this.currentCategory.current()?.id;
+      return id ? { id, revision: this.library.revision() } : undefined;
+    },
+    loader: async ({ params }) => {
+      const node = await this.library.getNode(params.id);
+      // Gone from the library (moved, renamed folder replaced, cache cleared): show nothing.
+      if (!node?.isFolder) return null;
+      return { node, sessions: await this.library.getDescendantSessions(params.id) };
+    },
+  });
+
+  /** Card model for "Current category": progress recomputes live as sessions finish. */
+  readonly current = computed(() => {
+    const c = this.currentContents.value();
+    if (!c || !c.sessions.length) return null;
+    const progress = collectionProgress(c.sessions, this.playback.progress());
+    return {
+      node: c.node,
+      title: displayName(c.node),
+      appearance: categoryAppearance(c.node),
+      progress,
+      // When everything's done, offer to go round again from the first session.
+      playTarget: progress.next ?? c.sessions[0],
+    };
+  });
+
   /** Separate from `data` so hearting a session doesn't recompute streaks. */
   readonly favoritesPreview = resource({
     params: () => ({ revision: this.favorites.revision(), library: this.library.revision() }),
@@ -100,7 +132,7 @@ export class HomePage {
   });
 
   constructor() {
-    addIcons({ leafOutline, play });
+    addIcons({ chevronForward, leafOutline, play });
     const onVisible = () => {
       if (document.visibilityState === 'visible') this.now.set(new Date());
     };
@@ -124,6 +156,18 @@ export class HomePage {
     const left = entry.durationSec ? entry.durationSec - entry.positionSec : 0;
     const remaining = left > 0 ? `${formatDuration(left * 1000)} left` : '';
     return [entry.folderPath, remaining].filter(Boolean).join(' · ');
+  }
+
+  sessionTitle(node: DriveNode): string {
+    return displayName(node);
+  }
+
+  sessionLength(node: DriveNode): string {
+    return node.durationMs ? formatDuration(node.durationMs) : '';
+  }
+
+  playCurrent(node: DriveNode): void {
+    void this.player.open(node);
   }
 
   openFavorite(node: DriveNode): void {

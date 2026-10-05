@@ -25,6 +25,36 @@ describe('PlaybackService', () => {
     (await TestBed.inject(DbService).db).close();
   });
 
+  it('keeps a session marked done after a partial replay, and counts each finish', async () => {
+    await service.save({ ...base, positionSec: 598, durationSec: 600 }); // finished
+    expect(service.progress().get('s1')).toMatchObject({ done: true, inProgress: false });
+    expect(await service.get('s1')).toMatchObject({ timesCompleted: 1 });
+
+    await service.save({ ...base, positionSec: 120, durationSec: 600 }); // replaying, part-way
+    expect(await service.get('s1')).toMatchObject({ completed: false, timesCompleted: 1 });
+    expect(service.progress().get('s1')).toMatchObject({ done: true, inProgress: true, positionSec: 120 });
+
+    await service.save({ ...base, positionSec: 599, durationSec: 600 }); // finished again
+    await service.save({ ...base, positionSec: 0, durationSec: 600, completed: true }); // re-save, not a new finish
+    expect(await service.get('s1')).toMatchObject({ timesCompleted: 2 });
+    expect((await service.get('s1'))?.lastCompletedAt).toBeTruthy();
+  });
+
+  it('loads progress on startup, counting finishes saved before timesCompleted existed', async () => {
+    const db = await TestBed.inject(DbService).db;
+    await db.put('playback', { ...base, driveId: 'old', positionSec: 0, completed: true, updatedAt: 'x' });
+    await db.put('playback', { ...base, driveId: 'mid', positionSec: 50, durationSec: 600, completed: false, updatedAt: 'x' });
+    db.close();
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({});
+    const fresh = TestBed.inject(PlaybackService);
+
+    await vi.waitFor(() => expect(fresh.progress().size).toBe(2));
+    expect(fresh.progress().get('old')).toMatchObject({ done: true, inProgress: false });
+    expect(fresh.progress().get('mid')).toMatchObject({ done: false, inProgress: true });
+    service = fresh; // so afterEach closes the right connection
+  });
+
   it('resumes from a saved mid-session position', async () => {
     await service.save({ ...base, positionSec: 125, durationSec: 600 });
     expect(await service.resumePosition('s1')).toBe(125);

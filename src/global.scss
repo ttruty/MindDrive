@@ -150,8 +150,11 @@ ion-card {
 }
 
 // Keep content at a comfortable reading width on tablets / desktop.
-ion-content::part(scroll) {
-  padding-bottom: 24px;
+// Breathing room below the last item on tab pages. Use Ionic's --padding-bottom, which it *adds* to
+// --offset-bottom (the tab bar's height for fullscreen content). Setting padding-bottom on
+// ::part(scroll) directly replaced that offset and left the last row of tiles under the tab bar.
+ion-tabs ion-content {
+  --padding-bottom: 24px;
 }
 // Wide screens: centre content at a comfortable width, always keeping a 16px gutter.
 @media (min-width: 768px) {

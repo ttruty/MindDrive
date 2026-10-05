@@ -46,6 +46,34 @@ describe('HomePage', () => {
     expect(el.textContent).toContain('Welcome to MindDrive');
   });
 
+  it('features the current category with progress and the next session to play', async () => {
+    localStorage.setItem('md.library.root', JSON.stringify({ id: 'root', name: 'Library' }));
+    localStorage.setItem('md.currentCategory', JSON.stringify({ id: 'sleep', name: 'Sleep', setAt: 'x' }));
+    const db = await TestBed.inject(DbService).db;
+    for (const n of [
+      folder('root', 'Library', null),
+      folder('sleep', 'Sleep', 'root'),
+      file('s1', 'sleep'),
+      { ...file('s2', 'sleep'), name: '02 - Wind Down.mp3', durationMs: 600_000 },
+      file('s3', 'sleep'),
+    ]) {
+      await db.put('driveCache', n);
+    }
+    await db.put('playback', {
+      driveId: 's1', name: 's1.mp3', mimeType: 'audio/mpeg', parentId: 'sleep', folderPath: 'Sleep',
+      positionSec: 0, completed: true, timesCompleted: 1, updatedAt: new Date().toISOString(),
+    });
+
+    const el = await render();
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      expect(el.querySelector('.current__title')?.textContent).toBe('Sleep');
+    });
+    expect(el.querySelector('.current__meta')?.textContent?.trim()).toBe('1 of 3 done');
+    expect(el.querySelector('.current__next-label')?.textContent).toBe('Up next');
+    expect(el.querySelector('.current__next-title')?.textContent?.replace(/\s+/g, ' ').trim()).toBe('Wind Down · 10 min');
+  });
+
   it('shows the streak, continue listening, and recently played categories first', async () => {
     localStorage.setItem('md.library.root', JSON.stringify({ id: 'root', name: 'Library' }));
     const db = await TestBed.inject(DbService).db;

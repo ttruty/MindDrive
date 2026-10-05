@@ -27,10 +27,37 @@
       <span class="hero__icon"><ion-icon [name]="appearance()?.icon" aria-hidden="true"></ion-icon></span>
       <h1>{{ title() }}</h1>
       @if (countLabel()) {
-        <p>{{ countLabel() }}</p>
+        <p>
+          {{ countLabel() }}
+          @if (progress().done) {
+            · {{ progress().allDone ? 'all done' : progress().done + ' done' }}
+          }
+        </p>
+      }
+      @if (progress().done) {
+        <div
+          class="hero__progress"
+          role="progressbar"
+          aria-label="Sessions completed"
+          [attr.aria-valuenow]="progress().done"
+          aria-valuemin="0"
+          [attr.aria-valuemax]="progress().total"
+        >
+          <span [style.width.%]="progress().fraction * 100"></span>
+        </div>
       }
       @if (c.allSessions.length) {
         <div class="hero__actions">
+          <button
+            type="button"
+            class="hero__pill hero__pill--button"
+            [class.hero__pill--on]="isCurrent()"
+            [attr.aria-pressed]="isCurrent()"
+            (click)="toggleCurrent()"
+          >
+            <ion-icon [name]="isCurrent() ? 'flag' : 'flag-outline'" aria-hidden="true"></ion-icon>
+            {{ isCurrent() ? 'Current category' : 'Set as current' }}
+          </button>
           @if (downloadingCount(); as n) {
             <span class="hero__pill"><ion-spinner name="crescent"></ion-spinner>Downloading · {{ n }} left</span>
           } @else if (notDownloaded().length) {

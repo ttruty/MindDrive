@@ -2,6 +2,15 @@
   margin-top: 8px;
 }
 
+// When the current-category card leads the page, its heading sits close under the large title.
+.home-current-title {
+  margin-top: 8px;
+}
+
+app-streak-card:not(.home-first) {
+  margin-top: 24px;
+}
+
 .home-heading {
   display: flex;
   align-items: baseline;
@@ -18,6 +27,123 @@
     color: var(--ion-color-primary);
     text-decoration: none;
   }
+}
+
+.current {
+  padding: 16px;
+  border-radius: var(--md-radius-lg);
+  box-shadow: var(--md-shadow);
+  color: #fff;
+}
+
+.current__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.current__icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  font-size: 22px;
+}
+
+.current__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.current__title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.current__meta {
+  font-size: 0.85rem;
+  opacity: 0.92;
+}
+
+.current__bar {
+  height: 6px;
+  margin: 14px 0;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.3);
+  overflow: hidden;
+
+  span {
+    display: block;
+    height: 100%;
+    border-radius: 3px;
+    background: #fff;
+  }
+}
+
+.current__next {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: var(--md-radius-md);
+  background: rgba(255, 255, 255, 0.2);
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+
+  &:active {
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #fff;
+  }
+}
+
+.current__play {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #fff;
+  color: #2e2a3b;
+  font-size: 18px;
+
+  ion-icon {
+    margin-inline-start: 2px;
+  }
+}
+
+.current__next-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.current__next-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.current__next-title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 .resume {

@@ -20,9 +20,14 @@ import {
   checkmarkCircle,
   chevronForward,
   cloudDownloadOutline,
+  flag,
+  flagOutline,
   searchOutline,
 } from 'ionicons/icons';
+import { collectionProgress } from '../../core/collection-progress';
+import { CurrentCategoryService } from '../../core/current-category.service';
 import { DownloadsService } from '../../core/downloads.service';
+import { PlaybackService } from '../../core/playback.service';
 import { GoogleAuthService } from '../../core/google-auth.service';
 import { LibraryService } from '../../core/library.service';
 import { DriveNode } from '../../core/models';
@@ -73,6 +78,8 @@ export class CategoryPage {
   private readonly player = inject(PlayerLauncher);
   private readonly alertCtrl = inject(AlertController);
   readonly downloads = inject(DownloadsService);
+  private readonly playback = inject(PlaybackService);
+  readonly currentCategory = inject(CurrentCategoryService);
 
   /** Bound from the `:folderId` route param. */
   readonly folderId = input.required<string>();
@@ -109,6 +116,22 @@ export class CategoryPage {
     return node ? categoryAppearance(node) : null;
   });
 
+  /** How much of this category (including sub-collections) has been played to the end. */
+  readonly progress = computed(() =>
+    collectionProgress(this.contents.value()?.allSessions ?? [], this.playback.progress()),
+  );
+  readonly isCurrent = computed(() => {
+    const node = this.contents.value()?.node;
+    return !!node && this.currentCategory.current()?.id === node.id;
+  });
+
+  toggleCurrent(): void {
+    const node = this.contents.value()?.node;
+    if (!node) return;
+    if (this.isCurrent()) this.currentCategory.clear();
+    else this.currentCategory.set(node);
+  }
+
   /** Sessions anywhere in this category that aren't stored yet (and aren't on their way). */
   readonly notDownloaded = computed(() => {
     const ids = this.downloads.ids();
@@ -121,7 +144,7 @@ export class CategoryPage {
   });
 
   constructor() {
-    addIcons({ checkmarkCircle, chevronForward, cloudDownloadOutline, searchOutline });
+    addIcons({ checkmarkCircle, chevronForward, cloudDownloadOutline, flag, flagOutline, searchOutline });
   }
 
   async confirmDownloadAll(): Promise<void> {

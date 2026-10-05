@@ -2,7 +2,9 @@
   @for (session of sessions(); track session.id) {
     <li class="row" [class.row--unavailable]="!network.online() && !downloads.ids().has(session.id)">
       <button type="button" class="row__main ion-activatable" (click)="sessionSelect.emit(session)">
-        <span class="row__play" aria-hidden="true"><ion-icon name="play"></ion-icon></span>
+        <span class="row__play" [class.row__play--done]="isDone(session)" aria-hidden="true">
+          <ion-icon [name]="isDone(session) ? 'checkmark' : 'play'"></ion-icon>
+        </span>
         <span class="row__text">
           <span class="row__title">{{ displayName(session) }}</span>
           <span class="row__meta">{{ meta(session) }}</span>

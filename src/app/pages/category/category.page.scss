@@ -48,7 +48,30 @@
 }
 
 .hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-top: 16px;
+}
+
+.hero__progress {
+  height: 6px;
+  margin-top: 12px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.3);
+  overflow: hidden;
+
+  span {
+    display: block;
+    height: 100%;
+    border-radius: 3px;
+    background: #fff;
+  }
+}
+
+.hero__pill--on {
+  background: #fff !important;
+  color: #2e2a3b !important;
 }
 
 .hero__pill {

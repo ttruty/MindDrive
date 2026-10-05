@@ -64,8 +64,10 @@ interface PlaybackEntry {
   folderPath: string;     // "Sleep / Deep Rest"
   positionSec: number;
   durationSec?: number;
-  completed: boolean;     // played to (near) the end → next play starts over
+  completed: boolean;     // played to (near) the end → next play starts over; resets on a partial replay
   updatedAt: string;      // ISO; indexed, drives "Continue listening"
+  timesCompleted?: number; // never resets — what "done" marks use (§18); missing = completed ? 1 : 0
+  lastCompletedAt?: string;
 }
 
 // streakLog store — one entry per calendar day with any playback
@@ -503,3 +505,36 @@ an app → MindDrive.
 - MindDrive reports facts only. Whether a session "counts" is decided by the habit's rule in Habits.
 - What leaves the device when on: each finished session's length, file name, folder path and time.
   The Settings text says so next to the toggle; keep it accurate if the event changes.
+
+## 18. Current category & completion marks
+
+- **"Done" means played to the end at least once**, and it survives replays. `PlaybackEntry.completed`
+  resets as soon as a finished session is replayed part-way (it drives resume), so it can't drive marks.
+  - `PlaybackService.save()` keeps `timesCompleted`, adding 1 when `completed` goes false → true (the same
+    moment Habits is told, §17), and sets `lastCompletedAt`.
+  - `timesCompleted(entry)` treats entries saved before this as 1 if `completed`.
+- **`PlaybackService.progress`:** a signal map `driveId → { done, inProgress, positionSec, durationSec }`,
+  loaded at startup and updated on every save. It's what the lists react to.
+- **`core/collection-progress.ts` `collectionProgress(sessions, progress)`:** pure; returns
+  `{ total, done, fraction, next, allDone }`. `next` is the first session not done, in browse order
+  (`getDescendantSessions`: sub-collections first, the same order as the category page).
+- **Session rows:**
+  - A done session's play circle becomes a sage check, and the meta line ends with "Done".
+  - A session part-way through shows "N min left" instead.
+  - Rows are still tappable to replay.
+- **Category tiles:** "8 sessions · 3 done", or "All 8 done". Each tile loads its own descendant
+  sessions with a `resource()` keyed on `library.revision`.
+- **Category page hero:** "· N done" with a progress bar, plus a **Set as current / Current category**
+  pill (`aria-pressed`) next to "Download all".
+- **`core/current-category.service.ts`:** `current()` is `{ id, name, setAt }`, stored in localStorage
+  `md.currentCategory`, with `set(folder)`, `clear()` and `isCurrent(id)`. Its tile gets a "Current" badge.
+- **Home** leads with a "Current category" card when one is set:
+  - the category's gradient, "N of M done", and a progress bar;
+  - **Up next** plays `progress.next`, or "Start again" from the first session once all are done;
+  - the header links to the category page.
+  - It's hidden if the folder is no longer in the library cache.
+  - The streak card follows it.
+- **Bottom-bar fix:** tab pages set `ion-tabs ion-content { --padding-bottom: 24px }`. The old
+  `ion-content::part(scroll) { padding-bottom }` rule replaced Ionic's `--offset-bottom` padding (the tab
+  bar's height, for fullscreen content), leaving the last row of tiles about 33 px under the tab bar.
+  Never set `padding-bottom` on `::part(scroll)`.
